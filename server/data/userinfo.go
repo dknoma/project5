@@ -6,11 +6,12 @@ type User struct {
 	Currency  int32  `json:"currency"`
 }
 
+// User list is kept server side NOT in blockchain
 type Users struct {
 	Users map[int32]User `json:"users"` // Maps user id to user
 }
 
-// If user has enough currency, can lower their currency. This is stored server side NOT in the blockchain
+// If user has enough currency, can lower their currency.
 func (users *Users) HasEnoughCurrency(userId, price int32) bool {
 	user := users.Users[userId]
 	return user.Currency-price >= 0

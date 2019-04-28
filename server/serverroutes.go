@@ -13,17 +13,17 @@ type Routes []Route
 
 var appServerRoutes = Routes{
 	Route{
-		"GetClientId",
+		"GiveClientId",
 		"GET",
 		"/getmyid",
-		GetClientId,
+		GiveClientId,
 	},
-	//Route{
-	//	"Canonical",
-	//	"GET",
-	//	"/canonical",
-	//	Canonical,
-	//},
+	Route{
+		"TryToBuyItem",
+		"POST",
+		"/trade/{id}",
+		TryToBuyItem,
+	},
 	//Route{
 	//	"Show",
 	//	"GET",

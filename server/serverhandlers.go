@@ -25,8 +25,12 @@ import (
 
 var nextUserId = 0
 
-func GetClientId(w http.ResponseWriter, r *http.Request) {
+func GiveClientId(w http.ResponseWriter, r *http.Request) {
 	clientId := nextUserId
 	nextUserId++
 	fmt.Fprint(w, clientId)
+}
+
+func TryToBuyItem(w http.ResponseWriter, r *http.Request) {
+
 }

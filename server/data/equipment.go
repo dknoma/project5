@@ -23,7 +23,7 @@ func New(name string, id int32, owner int32, description string, level, atk, def
 	return Equipment{name, id, owner, description, EquipmentStats{level, atk, def}}
 }
 
-func (e *Equipment) EncodeToJson() (string, error) {
+func (e *Equipment) EncodeEquipmentToJson() (string, error) {
 	jsonBytes, err := json.Marshal(e)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -31,7 +31,7 @@ func (e *Equipment) EncodeToJson() (string, error) {
 	}
 	mptJson := string(jsonBytes)
 	mptJson = mptJson[1 : len(mptJson)-1]
-	jsonOut := fmt.Sprintf("{\n\t\"name\": \"%v\",\n\t\"id\": %v,\n\t\"owner\": %v,\n\t\"description\": \"%v\",\n\t\"stats\": {\n\t\t\"level\": %v,\n\t\t\"atk\": %v,\n\t\t\"def\": %v\n\t}\n}",
+	jsonOut := fmt.Sprintf("{\"name\": \"%v\",\"id\": %v,\"owner\": %v,\"description\": \"%v\",\"stats\": {\"level\": %v,\"atk\": %v,\"def\": %v}}",
 		e.Name, e.Id, e.Owner, e.Description, e.Stats.Level, e.Stats.Atk, e.Stats.Def)
 	isValid := json.Valid([]byte(jsonOut))
 	if !isValid {
