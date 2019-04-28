@@ -1,8 +1,8 @@
-package project5
+package main
 
 import (
-	"fmt"
 	"./server"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
