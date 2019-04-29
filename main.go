@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-var MyPort int32
+var MyPort = int32(8000)
 
 func main() {
 	appServerRouter := server.NewAppServerRouter()
@@ -18,7 +18,6 @@ func main() {
 		//	fmt.Printf("Error: %v\n", err)
 		//	return
 		//}
-		MyPort = int32(8000)
 		//p3.MyPort = MyPort
 		fmt.Printf("port: %v\n", os.Args[1])
 		log.Fatal(http.ListenAndServe(":"+os.Args[1], appServerRouter))

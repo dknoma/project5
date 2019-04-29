@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+//- trade requests have their own id and the sellers id
+//	- mpt = [tx id]trade request json
+//		- option1: trade request/trade fulfillment share tx ids
+//		- option2: req+id (req1, req12, etc…), and ful+id (ful1, ful12, etc…)
+//			- the requests and fulfilments themselves only have int32 ids
+//			- string id is purely for for mpt insertion
 type TradeRequest struct {
 	Id      int32     `json:"id"`
 	Seller  int32     `json:"seller"`
