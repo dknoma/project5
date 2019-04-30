@@ -17,23 +17,24 @@ var appServerRoutes = Routes{
 		"GET",
 		"/getmyid",
 		GiveClientId,
-	}, Route{
-		"CreateRequest",
-		"POST",
+	},
+	Route{
+		"CreateRequest", // Allow sellers to create trade requests
+		"POST",          // POST seller id, equipment json, demand json
 		"/trade/request/create",
 		CreateRequest,
 	},
 	Route{
-		"ViewRequest",
-		"POST",
+		"ViewRequest", // Allow players to view info on a trade request
+		"GET",         // GET to view info on a trade request
 		"/trade/request/{id}",
 		ViewRequest,
 	},
 	Route{
-		"FulfillRequest",
-		"POST",
-		"/trade/fulfill/{id}",
-		FulfillRequest,
+		"FulfillRequest",      // Allow buyers to potentially fulfill trade requests
+		"POST",                // POST buyer id to check their currency, if has enough then can fulfill request
+		"/trade/fulfill/{id}", // id is request id
+		FulfillRequest,        // NOTE: monolithic=same service, microservice=fulfillment service
 	},
 	Route{
 		"HeartBeatReceive",
