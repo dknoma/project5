@@ -17,12 +17,23 @@ var appServerRoutes = Routes{
 		"GET",
 		"/getmyid",
 		GiveClientId,
+	}, Route{
+		"CreateRequest",
+		"POST",
+		"/trade/request/create",
+		CreateRequest,
 	},
 	Route{
-		"TryToBuyItem",
+		"ViewRequest",
 		"POST",
-		"/trade/{id}",
-		TryToBuyItem,
+		"/trade/request/{id}",
+		ViewRequest,
+	},
+	Route{
+		"FulfillRequest",
+		"POST",
+		"/trade/fulfill/{id}",
+		FulfillRequest,
 	},
 	//Route{
 	//	"Show",
