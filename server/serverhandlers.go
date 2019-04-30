@@ -153,10 +153,18 @@ func GiveClientId(w http.ResponseWriter, r *http.Request) {
 func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	// TODO: get POST body of item json, seller id, (if actual app would have database w/ user ids, etc...)
 	//		 as well as the demand json (desired currency)
+	//		 How to store tx in MPT? Function in main bc nodes that update the MPT to use for a miner's block
+	//		 Make it so MPT isn't randomly generated, but instead contains the data from requests and fulfillments
+	//		 	This might make it so whenever the MPT is changed, the nonce must start over. Ensures that they are in a block
+	//				if NEED to ensure that all trade requests are put up in the marketplace
+	//			OR functions that just updates the mpt to use
+	//				may not be as reliable
 	//fmt.Printf("Trade request ID: %v", id)
 }
 
 func ViewRequest(w http.ResponseWriter, r *http.Request) {
+	// TODO: To view a request it MUST be in the canonical chain. Must make a call to GetCanonical and check if the tx
+	//			exists in that chain. Probably have some sort of cache to store tx id to height (private bc)
 	p := strings.Split(r.URL.Path, "/") // split url paths
 	id, err := strconv.Atoi(p[2])
 	if err != nil {
