@@ -9,7 +9,7 @@ import (
 //	- mpt = [tx id]trade request json
 //		- option1: trade request/trade fulfillment share tx ids
 //		- option2: req+id (req1, req12, etc…), and ful+id (ful1, ful12, etc…)
-//			- the requests and fulfilments themselves only have int32 ids
+//			- the requests and fulfillments themselves only have int32 ids
 //			- string id is purely for for mpt insertion
 type TradeRequest struct {
 	Id      int32     `json:"id"`
@@ -21,6 +21,7 @@ type TradeRequest struct {
 type Demands struct {
 	Currency int32 `json:"currency"`
 	// TODO: optionally, could have an []Items to allow users to request money + item(s)
+	//		 NO CANCELING TRADE REQUESTS AT THIS MOMENT. This will be one of the later features if time allows
 }
 
 func (t *TradeRequest) EncodeRequestToJson() (string, error) {
