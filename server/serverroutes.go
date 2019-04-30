@@ -35,6 +35,12 @@ var appServerRoutes = Routes{
 		"/trade/fulfill/{id}",
 		FulfillRequest,
 	},
+	Route{
+		"HeartBeatReceive",
+		"POST",
+		"/heartbeat/receive",
+		HeartBeatReceive,
+	},
 	//Route{
 	//	"Show",
 	//	"GET",
