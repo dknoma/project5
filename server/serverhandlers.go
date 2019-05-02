@@ -201,10 +201,21 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	//		 way to store
 
 	//parsedData := parsedBodyValue["data"][0] // Get first index
+	id, err := strconv.Atoi(parsedBodyValue["seller"][0])
+	sellerId := int32(id)
+	equipmentSlot, err := strconv.Atoi(parsedBodyValue["equipmentSlot"][0])
+	cost := parsedBodyValue["cost"][0]
+
+	seller := UserList.Users[sellerId]
+	equipmentToSell := seller.Equipment[equipmentSlot]
+
+	fmt.Printf("seller id: %v, equipment slot: %v, cost: %v, seller: %v, equipment: %v\n", sellerId, equipmentSlot,
+		cost, seller, equipmentToSell)
 
 	// seller id
-	// equipment json
-	// demand json
+	// equipment slot (slot of the equipment in the users account)
+	//		get the equipment json from this slot in the users inventory
+	// demand cost
 	// 		verify if seller id exists
 	//		verify if equipment actually exists in the player's inventory
 	//		verify valid demand
