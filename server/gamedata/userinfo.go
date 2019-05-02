@@ -13,6 +13,10 @@ type Users struct {
 
 var nextWeaponId = int32(0)
 
+func (users *Users) InitUserList() {
+	users.Users = make(map[int32]User)
+}
+
 func (user *User) GenerateEquipment() {
 	totalWeapons := 10
 	atk := int32(5)

@@ -62,6 +62,7 @@ func init() {
 	//SELF_ADDR = fmt.Sprintf("%v%v", SELF_ADDR, MyPort)
 	//fmt.Printf("INIT: %v, %v\n", SELF_ADDR, TA_SERVER)
 	SBC = data.NewBlockChain() // Init synch blockchain here
+	UserList.InitUserList()
 	mpt := p1.MerklePatriciaTrie{}
 	mpt.NewTree()
 	block := SBC.GenBlock(mpt, "")
