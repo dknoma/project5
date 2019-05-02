@@ -7,6 +7,7 @@ import (
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p1"
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p2"
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p3/data"
+	data2 "github.com/dknoma/project5/server/data"
 	"golang.org/x/crypto/sha3"
 	"io/ioutil"
 	"math/rand"
@@ -46,6 +47,7 @@ var SELF_ADDR = "http://localhost:"
 
 var SBC data.SyncBlockChain
 var BlockchainPeers data.PeerList
+var TradeRequests data2.RequestCache
 
 var nextUserId = 0
 var ifStarted bool
@@ -150,6 +152,10 @@ func GiveClientId(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, clientId)
 }
 
+// POST body
+// 	"item": json
+// 	"sellerId": id
+// 	"demands": json
 func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	// TODO: get POST body of item json, seller id, (if actual app would have database w/ user ids, etc...)
 	//		 as well as the demand json (desired currency)
@@ -160,13 +166,51 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	//			OR functions that just updates the mpt to use
 	//				may not be as reliable
 	//fmt.Printf("Trade request ID: %v", id)
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	fmt.Printf("body value: %v\n", parsedBodyValue) // Print out the parsed body value
+	// TODO: Store this trade request in a trade request database: this allows a non-existent theoretical frontend
+	//		 to actuall display this trades for players to actually see and interact with. Unless there is an efficient
+	//		 way to store
+
+	// seller id
+	// equipment json
+	// demand json
+	// 		verify if seller id exists
+	//		verify if equipment actually exists in the player's inventory
+	//		verify valid demand
+	//		create request and store into db
+	// Might make sense to store the requests OFF chain, and ONLY fulfillments ON chain
+	//		A game based off of blockchain where miners are also players and whatnot, having everything on chain would make more sense
 }
 
 func ViewRequest(w http.ResponseWriter, r *http.Request) {
-	// TODO: To view a request it MUST be in the canonical chain. Must make a call to GetCanonical and check if the tx
-	//			exists in that chain. Probably have some sort of cache to store tx id to height (private bc)
+	// TODO: IF STORING REQUESTS IN CHAIN: To view a request it MUST be in the canonical chain. Must make a call to GetCanonical and check if the tx
+	//			exists in that chain. Probably have some sort of cache to store tx requestId to height (private bc)
+	//		 ELSE
+	//			Storing in off chain db that just stores requests in order to show them in the front end
+	//
 	p := strings.Split(r.URL.Path, "/") // split url paths
-	id, err := strconv.Atoi(p[2])
+	requestId, err := strconv.Atoi(p[2])
 	if err != nil {
 		// Error occurred. Param was not an integer
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
@@ -176,8 +220,11 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
 	}
-	fmt.Printf("Trade request ID: %v", id)
-
+	fmt.Printf("Trade request ID: %v", requestId)
+	// take request id
+	// check the db for the request id
+	// get the request json
+	// send that request json to the client
 }
 
 func FulfillRequest(w http.ResponseWriter, r *http.Request) {
@@ -195,7 +242,10 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Trade request ID: %v", id)
-
+	// get buyer id
+	//		verify that the buyer id is valid
+	//
+	//
 }
 
 //TODO: In order to check the blockchain for trades, must access the blockchain somehow. In order to do this
