@@ -200,14 +200,14 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	//		 to actuall display this trades for players to actually see and interact with. Unless there is an efficient
 	//		 way to store
 
-	//parsedData := parsedBodyValue["data"][0] // Get first index
+	// Convert to id from the map to an int, to int32
 	id, err := strconv.Atoi(parsedBodyValue["seller"][0])
 	sellerId := int32(id)
-	equipmentSlot, err := strconv.Atoi(parsedBodyValue["equipmentSlot"][0])
-	cost := parsedBodyValue["cost"][0]
+	equipmentSlot, err := strconv.Atoi(parsedBodyValue["equipmentSlot"][0]) // The slot of the desired equipment in the users inventory
+	cost := parsedBodyValue["cost"][0]                                      // cost of the demand
 
-	seller := UserList.Users[sellerId]
-	equipmentToSell := seller.Equipment[equipmentSlot]
+	seller := UserList.Users[sellerId]                 // actual user of the seller
+	equipmentToSell := seller.Equipment[equipmentSlot] // the equipment from the sellers inventory
 
 	fmt.Printf("seller id: %v, equipment slot: %v, cost: %v, seller: %v, equipment: %v\n", sellerId, equipmentSlot,
 		cost, seller, equipmentToSell)
