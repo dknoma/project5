@@ -235,8 +235,8 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	// check the db for the request id
 	// get the request json
 	// send that request json to the client
-	tradeRequestJson, err := TradeRequests.ReqCache[requestId]
-	if err != nil {
+	tradeRequestJson, exists := TradeRequests.ReqCache[requestId]
+	if !exists {
 		// Error occurred. Param was not an integer
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError))
