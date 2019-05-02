@@ -1,13 +1,13 @@
 package server
 
 import (
+	"./gamedata"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p1"
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p2"
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p3/data"
-	data2 "github.com/dknoma/project5/server/data"
 	"golang.org/x/crypto/sha3"
 	"io/ioutil"
 	"math/rand"
@@ -21,7 +21,7 @@ import (
 //import (
 //	"../p1"
 //	"../p2"
-//	"./data"
+//	"./gamedata"
 //	"encoding/hex"
 //	"encoding/json"
 //	"fmt"
@@ -47,7 +47,8 @@ var SELF_ADDR = "http://localhost:"
 
 var SBC data.SyncBlockChain
 var BlockchainPeers data.PeerList
-var TradeRequests data2.RequestCache
+var TradeRequests gamedata.RequestCache
+var UserList gamedata.Users
 
 var nextUserId = 0
 var ifStarted bool
@@ -147,7 +148,12 @@ func Download() {
 }
 
 func GiveClientId(w http.ResponseWriter, r *http.Request) {
-	clientId := nextUserId
+	clientId := int32(nextUserId)
+	// Create a new use
+	newUser := gamedata.User{Id: clientId, Equipment: []gamedata.Equipment{}, Currency: 10000}
+	newUser.GenerateEquipment()
+	// Add new user to user list
+	UserList.Users[clientId] = newUser
 	nextUserId++
 	fmt.Fprint(w, clientId)
 }
@@ -160,7 +166,7 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	// TODO: get POST body of item json, seller id, (if actual app would have database w/ user ids, etc...)
 	//		 as well as the demand json (desired currency)
 	//		 How to store tx in MPT? Function in main bc nodes that update the MPT to use for a miner's block
-	//		 Make it so MPT isn't randomly generated, but instead contains the data from requests and fulfillments
+	//		 Make it so MPT isn't randomly generated, but instead contains the gamedata from requests and fulfillments
 	//		 	This might make it so whenever the MPT is changed, the nonce must start over. Ensures that they are in a block
 	//				if NEED to ensure that all trade requests are put up in the marketplace
 	//			OR functions that just updates the mpt to use
@@ -335,7 +341,7 @@ func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//fmt.Printf("body value: %v\n", parsedBodyValue)
-	parsedData := parsedBodyValue["data"][0] // Get first index
+	parsedData := parsedBodyValue["gamedata"][0] // Get first index
 	var newHeartBeatData data.HeartBeatData
 	err = json.Unmarshal([]byte(parsedData), &newHeartBeatData)
 	if err != nil {
@@ -352,7 +358,7 @@ func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Add the remote nodes address and id to your peermap
-	//fmt.Printf("incoming hb data: %v, %v\n", newHeartBeatData.Addr, newHeartBeatData.Id)
+	//fmt.Printf("incoming hb gamedata: %v, %v\n", newHeartBeatData.Addr, newHeartBeatData.Id)
 	BlockchainPeers.Add(newHeartBeatData.Addr, newHeartBeatData.Id)
 	// Add this nodes peermap into your own peermap (excluding your own address)
 	newPeerMapJson := newHeartBeatData.PeerMapJson
@@ -440,7 +446,7 @@ func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
 			continue
 		} // Dont send to self
 		postData := url.Values{}
-		postData.Set("data", jsonHB)
+		postData.Set("gamedata", jsonHB)
 		resp, err := http.PostForm(addr+"/heartbeat/receive", postData) // POST to server
 		if err != nil {
 			fmt.Printf("Heartbeat send error: %v\n", err)
@@ -479,7 +485,7 @@ func StartHeartBeat() {
 					continue
 				} // Dont send to self
 				postData := url.Values{}
-				postData.Set("data", preparedJson)
+				postData.Set("gamedata", preparedJson)
 				resp, err := http.PostForm(addr+"/heartbeat/receive", postData) // POST to server
 				if err != nil {
 					fmt.Printf("Heartbeat send rror: %v\n", err)

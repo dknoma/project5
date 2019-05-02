@@ -1,4 +1,4 @@
-package data
+package gamedata
 
 import (
 	"encoding/json"
@@ -24,7 +24,7 @@ type Demands struct {
 	//		 NO CANCELING TRADE REQUESTS AT THIS MOMENT. This will be one of the later features if time allows
 }
 
-// Realistically some sort of db/SQL would store some data maybe?
+// Realistically some sort of db/SQL would store some gamedata maybe?
 // Required to know where a transaction is located rather than storing the transaction itself
 type RequestCache struct {
 	ReqCache map[int32]RequestBlockInfo //	[trade request id]request block info (height at which its stored)
