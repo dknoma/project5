@@ -147,7 +147,8 @@ func Download() {
 	SBC.UpdateEntireBlockChain(respString)
 }
 
-func GiveClientId(w http.ResponseWriter, r *http.Request) {
+// Allow users to create an "account" (just a basic user)
+func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	clientId := int32(nextUserId)
 	// Create a new use
 	newUser := gamedata.User{Id: clientId, Equipment: []gamedata.Equipment{}, Currency: 10000}
@@ -218,7 +219,8 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	//			Storing in off chain db that just stores requests in order to show them in the front end
 	//
 	p := strings.Split(r.URL.Path, "/") // split url paths
-	requestId, err := strconv.Atoi(p[2])
+	reqId, err := strconv.Atoi(p[2])
+	requestId := int32(reqId)
 	if err != nil {
 		// Error occurred. Param was not an integer
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
@@ -233,6 +235,18 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	// check the db for the request id
 	// get the request json
 	// send that request json to the client
+	tradeRequestJson, err := TradeRequests.ReqCache[requestId]
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	fmt.Printf("tradeRequestJson: %v", tradeRequestJson)
+	fmt.Fprint(w, tradeRequestJson) // Send json to the client
 }
 
 func FulfillRequest(w http.ResponseWriter, r *http.Request) {

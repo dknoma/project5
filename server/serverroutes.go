@@ -13,10 +13,10 @@ type Routes []Route
 
 var appServerRoutes = Routes{
 	Route{
-		"GiveClientId",
+		"CreateAccount",
 		"GET",
-		"/getmyid",
-		GiveClientId,
+		"/account/create",
+		CreateAccount,
 	},
 	Route{
 		"CreateRequest", // Allow sellers to create trade requests
