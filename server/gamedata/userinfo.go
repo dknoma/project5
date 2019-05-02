@@ -32,7 +32,18 @@ func (users *Users) HasEnoughCurrency(userId, price int32) bool {
 	return user.Currency-price >= 0
 }
 
+// Validate that the user of the given id actually exists
 func (users *Users) UserExists(userId int32) bool {
 	_, exists := users.Users[userId]
 	return exists
+}
+
+// Validate if the user actually owns the item
+func (user *User) UserHasItem(equipment Equipment) bool {
+	for _, item := range user.Equipment {
+		if item == equipment {
+			return true
+		}
+	}
+	return false
 }

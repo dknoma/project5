@@ -198,6 +198,8 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	//		 to actuall display this trades for players to actually see and interact with. Unless there is an efficient
 	//		 way to store
 
+	//parsedData := parsedBodyValue["data"][0] // Get first index
+
 	// seller id
 	// equipment json
 	// demand json
