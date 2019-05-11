@@ -14,24 +14,6 @@ import (
 	"time"
 )
 
-//import (
-//	"../p1"
-//	"../p2"
-//	"./gamedata"
-//	"encoding/hex"
-//	"encoding/json"
-//	"fmt"
-//	"golang.org/x/crypto/sha3"
-//	"io/ioutil"
-//	"math"
-//	"math/rand"
-//	"net/http"
-//	"net/url"
-//	"strconv"
-//	"strings"
-//	"time"
-//)
-
 var MyPort int32
 var MyID int32 = 0
 
@@ -41,7 +23,17 @@ var BLOCKCHAIN_SERVER = "http://localhost:6686"
 var BC_DOWNLOAD_SERVER = BLOCKCHAIN_SERVER + "/upload"
 var SELF_ADDR = "http://localhost:"
 
-//var SBC data.SyncBlockChain
+// TODO: Maybe instead of keeping a peer list, keep a list of listeners
+//		 choose 32 random listeners, send tx to them which then forward those tx to other miners like heartbeats.
+//		 	- an improvement on this system is to utilize a reputation system, send to random 32 of the top 100 reputation
+//			  miners to discourage byzantine/selfish behaviour
+//		 or just send to everyone in the list, tho there could be a LOT of miners, bloating the system (tho there could also
+//			be a lot of players so it might not be an issue for this "game")
+//		OR
+//			miners probe the dApp for possible transactions, dApp provides the latest tx that have not been validated
+//				when successfully create a block, broadcast to the dApp that these transactions have been collected,
+//				dApp then removes them from their list
+
 var BlockchainPeers data.PeerList
 var TradeRequests gamedata.RequestCache
 var UserList gamedata.Users
