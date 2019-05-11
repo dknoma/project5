@@ -8,7 +8,7 @@ import (
 	"strconv"
 )
 
-var MyPort = int32(8000)
+var MyPort = int32(6666)
 
 func main() {
 	appServerRouter := server.NewAppServerRouter()
