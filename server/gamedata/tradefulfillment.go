@@ -85,23 +85,35 @@ func (fulfillments *TradeFulfillments) InitTradeFulfillments() {
 
 // {"tradeFulfillment": {“sellerId”: 6690,“buyerId”: 6684,“item”: {"name": "sword",“id”: 2,“owner”: 1,“description”: “This is a sword I got from a slime.”,"stats" : {"level": 1,"atk": 5,“def”: 5}},“sellerYield”: {“currency”: 1000},“buyerYield”: {“currency”: -1000},“minerYield”: {“currency”: 10}}}
 func (fulfillments *TradeFulfillments) TryRemoveFulfillments(fulfilledTradesJson string) bool {
-	//var fulfillmentList FulfillmentList
+	fulfillmentsToRemove, success := DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson)
+	if !success {
+		return false
+	}
+	fmt.Printf("b4 reduced fulfillments %v\n", fulfillments.Fulfillments)
+	for id := range fulfillmentsToRemove.Fulfillments {
+		delete(fulfillments.Fulfillments, id)
+	}
+	fmt.Printf("reduced fulfillments %v\n", fulfillments.Fulfillments)
+	return true
+}
+
+func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFulfillments, bool) {
 	var fulfillmentList []interface{}
 	err := json.Unmarshal([]byte(fulfilledTradesJson), &fulfillmentList)
 	if err != nil {
 		fmt.Println(err.Error())
-		return false
+		return TradeFulfillments{}, false
 	}
 	// Convert interface array into fulfillment map
-	var fulfillmentsToRemove TradeFulfillments
-	fulfillmentsToRemove.InitTradeFulfillments()
+	var fulfillments TradeFulfillments
+	fulfillments.InitTradeFulfillments()
 	for _, fulfillment := range fulfillmentList {
 		fulfillment := DecodeInterfaceToFulfillment(fulfillment.(map[string]interface{}))
 		//fmt.Printf("fulfillment: %v,%v\n",i,fulfillment)
-		fulfillmentsToRemove.Fulfillments[fulfillment.Id] = fulfillment
+		fulfillments.Fulfillments[fulfillment.Id] = fulfillment
 	}
-	fmt.Printf("listo %v\n", fulfillmentsToRemove)
-	return true
+	fmt.Printf("mapo %v\n", fulfillments)
+	return fulfillments, true
 }
 
 func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillment {

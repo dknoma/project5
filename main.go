@@ -24,7 +24,12 @@ func main() {
 	testsJson := "[{\"id\": 1,\"sellerId\": 6690,\"buyerId\": 6684,\"item\": {\"name\": \"sword\",\"id\": 2,\"owner\": 1,\"description\": \"This is a sword I got from a slime.\",\"stats\" : {\"level\": 1,\"atk\": 5,\"def\": 5}},\"sellerYield\": 1000,\"buyerYield\": -1000,\"minerYield\": 10},{\"id\": 2,\"sellerId\": 6690,\"buyerId\": 6684,\"item\": {\"name\": \"sword\",\"id\": 2,\"owner\": 1,\"description\": \"This is a sword I got from a slime.\",\"stats\" : {\"level\": 1,\"atk\": 5,\"def\": 5}},\"sellerYield\": 1000,\"buyerYield\": -1000,\"minerYield\": 10}]"
 
 	//fuls := gamedata.TradeFulfillments{}
-	fuls := gamedata.TradeFulfillments{}
+	//fuls := gamedata.TradeFulfillments{}
+	//fuls.InitTradeFulfillments()
+	fuls, success := gamedata.DecodeFulfillmentJsonArrayToInterface(testsJson)
+	if !success {
+		//fmt.Println("Couldn't decode json array...")
+	}
 	removed := fuls.TryRemoveFulfillments(testsJson)
 	fmt.Printf("ladhgkadg: %v\n", removed)
 
