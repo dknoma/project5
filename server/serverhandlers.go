@@ -48,6 +48,7 @@ func init() {
 	//fmt.Printf("INIT: %v, %v\n", SELF_ADDR, TA_SERVER)
 	//SBC = data.NewBlockChain() // Init synch blockchain here
 	UserList.InitUserList()
+	TradeRequests.InitTradeRequests()
 	PendingTradeFulfillments.InitTradeFulfillments()
 	//mpt := p1.MerklePatriciaTrie{}
 	//mpt.NewTree()
@@ -229,6 +230,7 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 
 	//var newTradeRequest gamedata.TradeRequest
 	newTradeRequest := gamedata.TradeRequest{nextTradeRequestId, sellerId, equipmentToSell, demands}
+	TradeRequests.AddToRequestCache(newTradeRequest)
 	fmt.Printf("new request: %v\n", newTradeRequest)
 	nextTradeRequestId++
 
@@ -251,11 +253,11 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	//			Storing in off chain db that just stores requests in order to show them in the front end
 	//
 	p := strings.Split(r.URL.Path, "/") // split url paths
-	reqId, err := strconv.Atoi(p[2])
+	reqId, err := strconv.Atoi(p[3])
 	requestId := int32(reqId)
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+		fmt.Printf("%v - %v || couldn't convert id.\n", http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError))
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, fmt.Sprintf("%d - %s",
@@ -270,7 +272,7 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	tradeRequestJson, exists := TradeRequests.TradeRequests[requestId]
 	if !exists {
 		// Error occurred. Param was not an integer
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+		fmt.Printf("%v - %v || trade doesnt exist\n", http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError))
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, fmt.Sprintf("%d - %s",

@@ -32,6 +32,10 @@ type RequestCache struct {
 	mux           sync.Mutex
 }
 
+func (r *RequestCache) InitTradeRequests() {
+	r.TradeRequests = make(map[int32]TradeRequest)
+}
+
 func (t *TradeRequest) EncodeRequestToJson() (string, error) {
 	jsonBytes, err := json.Marshal(t)
 	if err != nil {
