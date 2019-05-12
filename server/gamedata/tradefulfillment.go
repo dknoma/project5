@@ -79,8 +79,12 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 	return f, nil
 }
 
+func (fulfillments *TradeFulfillments) InitTradeFulfillments() {
+	fulfillments.Fulfillments = make(map[int32]TradeFulfillment)
+}
+
 // {"tradeFulfillment": {“sellerId”: 6690,“buyerId”: 6684,“item”: {"name": "sword",“id”: 2,“owner”: 1,“description”: “This is a sword I got from a slime.”,"stats" : {"level": 1,"atk": 5,“def”: 5}},“sellerYield”: {“currency”: 1000},“buyerYield”: {“currency”: -1000},“minerYield”: {“currency”: 10}}}
-func (fulfillments *TradeFulfillments) RemoveFulfillments(fulfilledTradesJson string) bool {
+func (fulfillments *TradeFulfillments) TryRemoveFulfillments(fulfilledTradesJson string) bool {
 	//var fulfillmentList FulfillmentList
 	var fulfillmentList []interface{}
 	err := json.Unmarshal([]byte(fulfilledTradesJson), &fulfillmentList)
@@ -88,13 +92,35 @@ func (fulfillments *TradeFulfillments) RemoveFulfillments(fulfilledTradesJson st
 		fmt.Println(err.Error())
 		return false
 	}
-
-	//hhh := fulfillmentList
-	fmt.Printf("listo %v\n", fulfillmentList)
-
-	//fmt.Printf("len: %v\n", len(fulfillmentList.FulfillmentList))
-	//for i, fulfillment := range fulfillmentList.FulfillmentList {
-	//	fmt.Printf("i, f: %v,%v\n", i, fulfillment)
-	//}
+	// Convert interface array into fulfillment map
+	var fulfillmentsToRemove TradeFulfillments
+	fulfillmentsToRemove.InitTradeFulfillments()
+	for _, fulfillment := range fulfillmentList {
+		fulfillment := DecodeInterfaceToFulfillment(fulfillment.(map[string]interface{}))
+		//fmt.Printf("fulfillment: %v,%v\n",i,fulfillment)
+		fulfillmentsToRemove.Fulfillments[fulfillment.Id] = fulfillment
+	}
+	fmt.Printf("listo %v\n", fulfillmentsToRemove)
 	return true
+}
+
+func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillment {
+	var ful TradeFulfillment
+	ful.Id = int32(fromMap["id"].(float64))
+	ful.Seller = int32(fromMap["sellerId"].(float64))
+	ful.Buyer = int32(fromMap["buyerId"].(float64))
+	eqpMap := fromMap["item"].(map[string]interface{})
+
+	var e Equipment
+	e.Name = eqpMap["name"].(string)
+	e.Id = int32(eqpMap["id"].(float64))
+	e.Owner = int32(eqpMap["owner"].(float64))
+	e.Description = eqpMap["description"].(string)
+
+	ful.Item = e
+	ful.SellerYield = int32(fromMap["sellerYield"].(float64))
+	ful.BuyerYield = int32(fromMap["buyerYield"].(float64))
+	ful.MinerYield = int32(fromMap["minerYield"].(float64))
+
+	return ful
 }

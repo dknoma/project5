@@ -25,8 +25,8 @@ func main() {
 
 	//fuls := gamedata.TradeFulfillments{}
 	fuls := gamedata.TradeFulfillments{}
-	works := fuls.RemoveFulfillments(testsJson)
-	fmt.Printf("ladhgkadg: %v\n", works)
+	removed := fuls.TryRemoveFulfillments(testsJson)
+	fmt.Printf("ladhgkadg: %v\n", removed)
 
 	//if len(os.Args) > 1 {
 	//port, err := strconv.Atoi(os.Args[1])
