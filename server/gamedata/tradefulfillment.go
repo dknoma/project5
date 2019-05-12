@@ -123,8 +123,8 @@ func GetFulfillmentIdsFromJson(fulfilledTradesJson string) []int32 {
 	//  	 get request ids
 	//  	 remove those requests
 	//  	 remove from fulfillment cache
-	fulfillmentsToRemove, success := DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson)
-	if !success {
+	fulfillmentsToRemove, err := DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson)
+	if err != nil {
 		return []int32{}
 	}
 	var ids []int32
@@ -135,12 +135,12 @@ func GetFulfillmentIdsFromJson(fulfilledTradesJson string) []int32 {
 }
 
 // Decode json string -> []interface{} -> TradeFulfillments
-func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFulfillments, bool) {
+func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFulfillments, error) {
 	var fulfillmentList []interface{}
 	err := json.Unmarshal([]byte(fulfilledTradesJson), &fulfillmentList)
 	if err != nil {
 		fmt.Println(err.Error())
-		return TradeFulfillments{}, false
+		return TradeFulfillments{}, err
 	}
 	// Convert interface array into fulfillment map
 	var fulfillments TradeFulfillments
@@ -151,7 +151,7 @@ func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFul
 		fulfillments.Fulfillments[fulfillment.Id] = fulfillment
 	}
 	fmt.Printf("mapo %v\n", fulfillments)
-	return fulfillments, true
+	return fulfillments, nil
 }
 
 // Decode map[string]interface{} to TradeFulfillment

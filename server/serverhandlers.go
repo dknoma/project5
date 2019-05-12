@@ -36,7 +36,8 @@ var TradeRequests gamedata.RequestCache
 var PendingTradeFulfillments gamedata.TradeFulfillments
 var UserList gamedata.Users
 
-var nextUserId = 0
+var nextUserId = int32(0)
+var nextTradeRequestId = int32(0)
 var ifStarted bool
 
 func init() {
@@ -63,7 +64,7 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	}
 	ifStarted = true
 	SELF_ADDR = fmt.Sprintf("%v%v", SELF_ADDR, MyPort)
-	Register()
+	//Register()
 	//StartHeartBeat()
 	fmt.Fprint(w, BlockchainPeers.GetSelfId())
 }
@@ -156,6 +157,7 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	//				if NEED to ensure that all trade requests are put up in the marketplace
 	//			OR functions that just updates the mpt to use
 	//				may not be as reliable
+	// 		- Still allows for multiple requests for the same item.
 	//fmt.Printf("Trade request ID: %v", id)
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -187,11 +189,24 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(parsedBodyValue["seller"][0])
 	sellerId := int32(id)
 	equipmentSlot, err := strconv.Atoi(parsedBodyValue["equipmentSlot"][0]) // The slot of the desired equipment in the users inventory
-	cost := parsedBodyValue["cost"][0]                                      // cost of the demand
+	//cost := parsedBodyValue["cost"][0]                                      // cost of the demand
+	demandJson := parsedBodyValue["demands"][0]
+	demands, err := gamedata.DecodeDemandJson(demandJson)
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	fmt.Printf("demands %v\n", demands)
 
 	seller, sellerExists := UserList.Users[sellerId] // actual user of the seller
-	if !sellerExists {
-		// Seller doesn't exist
+	fmt.Printf("seller %v\n", seller)
+	if !sellerExists || equipmentSlot > len(seller.Inventory.Equipment) || equipmentSlot < 0 {
+		// Seller doesn't exist || equipment slot doesnt exist
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError))
 		w.WriteHeader(http.StatusInternalServerError)
@@ -199,12 +214,23 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
 	}
-	equipmentToSell := seller.Equipment[equipmentSlot] // the equipment from the sellers inventory
-
-	fmt.Printf("seller id: %v, equipment slot: %v, cost: %v, seller: %v, equipment: %v\n", sellerId, equipmentSlot,
-		cost, seller, equipmentToSell)
+	equipmentToSell := seller.Inventory.Equipment[equipmentSlot] // the equipment from the sellers inventory
+	if gamedata.EquipmentIsEmpty(equipmentToSell) {
+		// equipment is empty/doesnt exist
+		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	//fmt.Printf("seller id: %v, equipment slot: %v, cost: %v, seller: %v, equipment: %v\n", sellerId, equipmentSlot,
+	//	demands.Currency, seller, equipmentToSell)
 
 	//var newTradeRequest gamedata.TradeRequest
+	newTradeRequest := gamedata.TradeRequest{nextTradeRequestId, sellerId, equipmentToSell, demands}
+	fmt.Printf("new request: %v\n", newTradeRequest)
+	nextTradeRequestId++
 
 	// seller id
 	// equipment slot (slot of the equipment in the users account)

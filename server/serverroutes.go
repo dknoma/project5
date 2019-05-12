@@ -66,10 +66,10 @@ var appServerRoutes = Routes{
 	//	"/heartbeat/receive",
 	//	HeartBeatReceive,
 	//},
-	//Route{
-	//	"Start",
-	//	"GET",
-	//	"/start",
-	//	Start,
-	//},
+	Route{
+		"Start",
+		"GET",
+		"/start",
+		Start,
+	},
 }

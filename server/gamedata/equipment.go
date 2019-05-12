@@ -23,6 +23,11 @@ func New(name string, id int32, owner int32, description string, level, atk, def
 	return Equipment{name, id, owner, description, EquipmentStats{level, atk, def}}
 }
 
+func EquipmentIsEmpty(eqp Equipment) bool {
+	empty := Equipment{}
+	return eqp == empty
+}
+
 func (e *Equipment) EncodeEquipmentToJson() (string, error) {
 	jsonBytes, err := json.Marshal(e)
 	if err != nil {

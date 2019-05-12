@@ -56,6 +56,16 @@ func (t *TradeRequest) EncodeRequestToJson() (string, error) {
 	return jsonOut, nil
 }
 
+func DecodeDemandJson(jsonStr string) (Demands, error) {
+	var demands Demands
+	err := json.Unmarshal([]byte(jsonStr), &demands)
+	if err != nil {
+		fmt.Println(err.Error())
+		return Demands{}, err
+	}
+	return demands, nil
+}
+
 func (r *RequestCache) AddToRequestCache(req TradeRequest) {
 	r.mux.Lock()
 	defer r.mux.Unlock()

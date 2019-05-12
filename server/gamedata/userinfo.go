@@ -1,11 +1,19 @@
 package gamedata
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 type User struct {
-	Id        int32       `json:"id"`
-	Equipment []Equipment `json:"inventory"`
-	Currency  int32       `json:"currency"`
+	Id        int32     `json:"id"`
+	Inventory Inventory `json:"inventory"`
+	Currency  int32     `json:"currency"`
+}
+
+type Inventory struct {
+	Equipment []Equipment `json:"equipment"`
+	mux       sync.Mutex
 }
 
 // User list is kept server side NOT in blockchain
@@ -22,9 +30,23 @@ func (users *Users) InitUserList() {
 
 func (users *Users) AddUser(id int32) {
 	users.mux.Lock()
-	newUser := User{Id: id, Equipment: []Equipment{}, Currency: 10000}
+	newUser := User{Id: id, Inventory: Inventory{}, Currency: 10000}
 	newUser.GenerateEquipment()
+	users.Users[id] = newUser
 	users.mux.Unlock()
+}
+
+// TODO: future functionality would include adding/moving equipment to a specific slot in a users inventory
+func (user *User) AddEquipment(eqp Equipment) {
+	user.Inventory.mux.Lock()
+	user.Inventory.Equipment = append(user.Inventory.Equipment, eqp)
+	user.Inventory.mux.Unlock()
+}
+
+func (user *User) RemoveEquipment(slot int32) {
+	user.Inventory.mux.Lock()
+	user.Inventory.Equipment[slot] = Equipment{}
+	user.Inventory.mux.Unlock()
 }
 
 func (user *User) GenerateEquipment() {
@@ -32,12 +54,13 @@ func (user *User) GenerateEquipment() {
 	atk := int32(5)
 	def := int32(5)
 	for i := 0; i < totalWeapons; i++ {
-		user.Equipment = append(user.Equipment, Equipment{"Sword", nextWeaponId,
+		user.Inventory.Equipment = append(user.Inventory.Equipment, Equipment{"Sword", nextWeaponId,
 			user.Id, "This is a basic sword.", EquipmentStats{1, atk, def}})
 		atk++
 		def++
 		nextWeaponId++
 	}
+	fmt.Printf("Generated equipment\n")
 }
 
 // If user has enough currency, can lower their currency.
@@ -54,7 +77,10 @@ func (users *Users) UserExists(userId int32) bool {
 
 // Validate if the user actually owns the item
 func (user *User) UserHasItem(equipment Equipment) bool {
-	for _, item := range user.Equipment {
+	if EquipmentIsEmpty(equipment) {
+		return false
+	}
+	for _, item := range user.Inventory.Equipment {
 		if item == equipment {
 			return true
 		}
