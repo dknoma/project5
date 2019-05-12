@@ -73,3 +73,36 @@ func DecodeEquipmentFromJson(jsonString string) (Equipment, error) {
 	e.Stats = es
 	return e, nil
 }
+
+func DecodeEquipmentFromMap(eqpMap map[string]interface{}) (Equipment, error) {
+	//jsonBytes := []byte(jsonString)
+	//// Unmarshal the json bytes into a new key:value map
+	//var equipmentMap map[string]interface{}
+	//err := json.Unmarshal(jsonBytes, &equipmentMap)
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return Equipment{}, err
+	//}
+	// Create new block to insert unmarshalled values into
+	var e Equipment
+	e.Name = eqpMap["name"].(string)
+	e.Id = int32(eqpMap["id"].(float64))
+	e.Owner = int32(eqpMap["owner"].(float64))
+	e.Description = eqpMap["description"].(string)
+
+	// convert stats string into bytes into struct
+	statMap := eqpMap["stats"].(map[string]interface{})
+	//var statMap map[string]interface{}
+	//err := json.Unmarshal(statBytes, &statMap)
+	//if err != nil {
+	//	fmt.Println(err.Error())
+	//	return Equipment{}, err
+	//}
+	var es EquipmentStats
+	es.Level = int32(statMap["level"].(float64))
+	es.Atk = int32(statMap["atk"].(float64))
+	es.Def = int32(statMap["def"].(float64))
+	// Insert stats into equipement
+	e.Stats = es
+	return e, nil
+}

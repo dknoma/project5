@@ -19,6 +19,10 @@ type TradeFulfillments struct {
 	Fulfillments map[int32]TradeFulfillment `json:"fulfillments"`
 }
 
+type FulfillmentList struct {
+	FulfillmentList []string `json:"fulfillmentList"`
+}
+
 func (fulfillment *TradeFulfillment) EncodeFulfillmentToJson() (string, error) {
 	jsonBytes, err := json.Marshal(fulfillment)
 	if err != nil {
@@ -55,15 +59,19 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 	// Create new TradeFulfillment to insert unmarshalled values into
 	var f TradeFulfillment
 	f.Id = int32(fulfillmentMap["id"].(float64))
-	f.Seller = int32(fulfillmentMap["seller"].(float64))
-	f.Buyer = int32(fulfillmentMap["buyer"].(float64))
+	f.Seller = int32(fulfillmentMap["sellerId"].(float64))
+	f.Buyer = int32(fulfillmentMap["buyerId"].(float64))
+
 	// decode equipment json to equipment struct
-	eqpString := fulfillmentMap["item"].(string)
-	eqp, err := DecodeEquipmentFromJson(eqpString)
+	//eqpString := fulfillmentMap["item"].(string)
+	eqpMap := fulfillmentMap["item"].(map[string]interface{})
+	eqp, err := DecodeEquipmentFromMap(eqpMap)
+	//eqp, err := DecodeEquipmentFromJson(eqpString)
 	if err != nil {
 		fmt.Println(err.Error())
 		return TradeFulfillment{}, err
 	}
+
 	f.Item = eqp
 	f.SellerYield = int32(fulfillmentMap["sellerYield"].(float64))
 	f.BuyerYield = int32(fulfillmentMap["buyerYield"].(float64))
@@ -71,6 +79,22 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 	return f, nil
 }
 
-func (fulfillments *TradeFulfillments) RemoveFulfillments(fulfilledTradesJson string) {
+// {"tradeFulfillment": {“sellerId”: 6690,“buyerId”: 6684,“item”: {"name": "sword",“id”: 2,“owner”: 1,“description”: “This is a sword I got from a slime.”,"stats" : {"level": 1,"atk": 5,“def”: 5}},“sellerYield”: {“currency”: 1000},“buyerYield”: {“currency”: -1000},“minerYield”: {“currency”: 10}}}
+func (fulfillments *TradeFulfillments) RemoveFulfillments(fulfilledTradesJson string) bool {
+	//var fulfillmentList FulfillmentList
+	var fulfillmentList []interface{}
+	err := json.Unmarshal([]byte(fulfilledTradesJson), &fulfillmentList)
+	if err != nil {
+		fmt.Println(err.Error())
+		return false
+	}
 
+	//hhh := fulfillmentList
+	fmt.Printf("listo %v\n", fulfillmentList)
+
+	//fmt.Printf("len: %v\n", len(fulfillmentList.FulfillmentList))
+	//for i, fulfillment := range fulfillmentList.FulfillmentList {
+	//	fmt.Printf("i, f: %v,%v\n", i, fulfillment)
+	//}
+	return true
 }
