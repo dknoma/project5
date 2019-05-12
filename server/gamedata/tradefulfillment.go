@@ -3,6 +3,7 @@ package gamedata
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 )
 
 type TradeFulfillment struct {
@@ -17,10 +18,21 @@ type TradeFulfillment struct {
 
 type TradeFulfillments struct {
 	Fulfillments map[int32]TradeFulfillment `json:"fulfillments"`
+	mux          sync.Mutex
 }
 
-type FulfillmentList struct {
-	FulfillmentList []string `json:"fulfillmentList"`
+//type FulfillmentList struct {
+//	FulfillmentList []string `json:"fulfillmentList"`
+//}
+
+func (fulfillments *TradeFulfillments) InitTradeFulfillments() {
+	fulfillments.Fulfillments = make(map[int32]TradeFulfillment)
+}
+
+func (fulfillments *TradeFulfillments) AddFulfillment(fulfillment TradeFulfillment) {
+	fulfillments.mux.Lock()
+	defer fulfillments.mux.Unlock()
+	fulfillments.Fulfillments[fulfillment.Id] = fulfillment
 }
 
 func (fulfillment *TradeFulfillment) EncodeFulfillmentToJson() (string, error) {
@@ -79,17 +91,17 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 	return f, nil
 }
 
-func (fulfillments *TradeFulfillments) InitTradeFulfillments() {
-	fulfillments.Fulfillments = make(map[int32]TradeFulfillment)
-}
-
 // {"tradeFulfillment": {“sellerId”: 6690,“buyerId”: 6684,“item”: {"name": "sword",“id”: 2,“owner”: 1,“description”: “This is a sword I got from a slime.”,"stats" : {"level": 1,"atk": 5,“def”: 5}},“sellerYield”: {“currency”: 1000},“buyerYield”: {“currency”: -1000},“minerYield”: {“currency”: 10}}}
 func (fulfillments *TradeFulfillments) TryRemoveFulfillments(fulfilledTradesJson string) bool {
+	fulfillments.mux.Lock()
+	defer fulfillments.mux.Unlock()
+	// Do decode
 	fulfillmentsToRemove, success := DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson)
 	if !success {
 		return false
 	}
 	fmt.Printf("b4 reduced fulfillments %v\n", fulfillments.Fulfillments)
+	// try delete
 	for id := range fulfillmentsToRemove.Fulfillments {
 		delete(fulfillments.Fulfillments, id)
 	}
@@ -97,6 +109,7 @@ func (fulfillments *TradeFulfillments) TryRemoveFulfillments(fulfilledTradesJson
 	return true
 }
 
+// Decode json string -> []interface{} -> TradeFulfillments
 func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFulfillments, bool) {
 	var fulfillmentList []interface{}
 	err := json.Unmarshal([]byte(fulfilledTradesJson), &fulfillmentList)
@@ -116,6 +129,7 @@ func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFul
 	return fulfillments, true
 }
 
+// Decode map[string]interface{} to TradeFulfillment
 func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillment {
 	var ful TradeFulfillment
 	ful.Id = int32(fromMap["id"].(float64))

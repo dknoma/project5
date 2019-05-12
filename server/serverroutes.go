@@ -36,12 +36,12 @@ var appServerRoutes = Routes{
 		"/trade/fulfill/{id}", // id is request id
 		FulfillRequest,        // NOTE: monolithic=same service, microservice=fulfillment service
 	},
-	Route{
-		"HeartBeatReceive",
-		"POST",
-		"/heartbeat/receive",
-		HeartBeatReceive,
-	},
+	//Route{
+	//	"HeartBeatReceive",
+	//	"POST",
+	//	"/heartbeat/receive",
+	//	HeartBeatReceive,
+	//},
 	//Route{
 	//	"Show",
 	//	"GET",

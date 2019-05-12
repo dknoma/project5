@@ -1,17 +1,14 @@
 package server
 
 import (
-	"./gamedata"
-	"encoding/json"
 	"fmt"
 	"github.com/dknoma/cs686-blockchain-p3-dknoma/p3/data"
+	"github.com/dknoma/project5/server/gamedata"
 	"io/ioutil"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 )
 
 var MyPort int32
@@ -36,12 +33,11 @@ var SELF_ADDR = "http://localhost:"
 
 var BlockchainPeers data.PeerList
 var TradeRequests gamedata.RequestCache
+var PendingTradeFulfillments gamedata.TradeFulfillments
 var UserList gamedata.Users
 
 var nextUserId = 0
 var ifStarted bool
-
-const MAX_NONCE = 6
 
 func init() {
 	// This function will be executed before everything else.
@@ -51,6 +47,7 @@ func init() {
 	//fmt.Printf("INIT: %v, %v\n", SELF_ADDR, TA_SERVER)
 	//SBC = data.NewBlockChain() // Init synch blockchain here
 	UserList.InitUserList()
+	PendingTradeFulfillments.InitTradeFulfillments()
 	//mpt := p1.MerklePatriciaTrie{}
 	//mpt.NewTree()
 	//block := SBC.GenBlock(mpt, "")
@@ -195,11 +192,22 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	equipmentSlot, err := strconv.Atoi(parsedBodyValue["equipmentSlot"][0]) // The slot of the desired equipment in the users inventory
 	cost := parsedBodyValue["cost"][0]                                      // cost of the demand
 
-	seller := UserList.Users[sellerId]                 // actual user of the seller
+	seller, sellerExists := UserList.Users[sellerId] // actual user of the seller
+	if !sellerExists {
+		// Seller doesn't exist
+		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
 	equipmentToSell := seller.Equipment[equipmentSlot] // the equipment from the sellers inventory
 
 	fmt.Printf("seller id: %v, equipment slot: %v, cost: %v, seller: %v, equipment: %v\n", sellerId, equipmentSlot,
 		cost, seller, equipmentToSell)
+
+	//var newTradeRequest gamedata.TradeRequest
 
 	// seller id
 	// equipment slot (slot of the equipment in the users account)
@@ -236,7 +244,7 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	// check the db for the request id
 	// get the request json
 	// send that request json to the client
-	tradeRequestJson, exists := TradeRequests.ReqCache[requestId]
+	tradeRequestJson, exists := TradeRequests.TradeRequests[requestId]
 	if !exists {
 		// Error occurred. Param was not an integer
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
@@ -265,6 +273,46 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Trade request ID: %v", id)
+
+	tradeReq, exists := TradeRequests.TradeRequests[int32(id)]
+	if !exists {
+		// Trade request doesn't exist
+		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+
+	fmt.Printf("trade req: %v\n", tradeReq)
+
+	// Read the POST body from the client
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
+	if err != nil {
+		// Error occurred.
+		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	//fmt.Printf("body value: %v\n", parsedBodyValue)
+	parsedData := parsedBodyValue["data"][0] // Get first index
+	fmt.Printf("stuff %v\n", parsedData)
+
 	// get buyer id
 	//		verify that the buyer id is valid
 	//
@@ -335,187 +383,187 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 //}
 
 // Received a heartbeat
-func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	defer r.Body.Close()
-	if err != nil {
-		// Error occurred. Param was not an integer
-		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-		return
-	}
-	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
-	if err != nil {
-		// Error occurred. Param was not an integer
-		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-		return
-	}
-	//fmt.Printf("body value: %v\n", parsedBodyValue)
-	parsedData := parsedBodyValue["gamedata"][0] // Get first index
-	var newHeartBeatData data.HeartBeatData
-	err = json.Unmarshal([]byte(parsedData), &newHeartBeatData)
-	if err != nil {
-		// Error occurred. Param was not an integer
-		fmt.Printf("unmarshal heartbeat - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-		return
-	}
-	if newHeartBeatData.Addr == SELF_ADDR {
-		fmt.Printf("HB was from self. ignoring...\n")
-		return
-	}
-	// Add the remote nodes address and id to your peermap
-	//fmt.Printf("incoming hb gamedata: %v, %v\n", newHeartBeatData.Addr, newHeartBeatData.Id)
-	BlockchainPeers.Add(newHeartBeatData.Addr, newHeartBeatData.Id)
-	// Add this nodes peermap into your own peermap (excluding your own address)
-	newPeerMapJson := newHeartBeatData.PeerMapJson
-	BlockchainPeers.InjectPeerMapJson(newPeerMapJson, SELF_ADDR)
-
-	// TODO: Do we want the dApp to be able to check validity of block creation? No chain is stored in the dApp
-
-	// Check if the block in the heartbeat is a new block
-	//if newHeartBeatData.IfNewBlock {
-	//hbBlock, err := p2.DecodeFromJSON(newHeartBeatData.BlockJson)
-	//if err != nil {
-	//	// Error occurred. Param was not an integer
-	//	fmt.Printf("decodeing hb block - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-	//		http.StatusText(http.StatusInternalServerError))
-	//	w.WriteHeader(http.StatusInternalServerError)
-	//	fmt.Fprint(w, fmt.Sprintf("%d - %s",
-	//		http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-	//	return
-	//}
-
-	// Check if sender actually solved hash puzzle; then check parents
-	//hashStr := hbBlock.Header.ParentHash + hbBlock.Header.Nonce + hbBlock.Value.Root
-	//fmt.Printf("\thbBlock.Header.ParentHash: %v\n", hbBlock.Header.ParentHash)
-	//fmt.Printf("\tNonce: %v\n", hbBlock.Header.Nonce)
-	//fmt.Printf("\tRoot: %v\n", hbBlock.Value.Root)
-	//sum := sha3.Sum256([]byte(hashStr))
-	//encodedStr := hex.EncodeToString(sum[:])
-	////fmt.Printf("\tencoded str: %v\n", encodedStr)
-	//validChars := 0
-
-	//hasSolved := false
-	//for i := 0; i < len(encodedStr); i++ { // break out of loop when reach max number to check
-	//	if validChars >= MAX_NONCE {
-	//		fmt.Println("Found valid nonce count!")
-	//		hasSolved = true
-	//		break
-	//	}
-	//	if string(encodedStr[i]) == "0" {
-	//		validChars++
-	//	} else { // Found non-zero before reaching end
-	//		hasSolved = false
-	//		break
-	//	}
-	//}
-	//hasSolved = validChars == MAX_NONCE
-	//fmt.Printf("sender has solved: %v\n", hasSolved)
-	//if hasSolved { // If solved, check for parent blocks then insert into chain
-	//	parentExists := SBC.CheckParentHash(hbBlock)
-	//	// If parent doesnt exist, download it before inserting new block
-	//	if !parentExists {
-	//		AskForBlock(hbBlock.Header.Height, hbBlock.Header.Hash)
-	//	}
-	//	SBC.Insert(hbBlock)
-	//}
-	//}
-
-	// If heartbeat has hops, forward to peer list
-	newHeartBeatDataHops := newHeartBeatData.Hops
-	if newHeartBeatDataHops > 0 {
-		newHeartBeatData.Hops = newHeartBeatDataHops - 1
-		//newHeartBeatData.Addr = SELF_ADDR
-		newHeartBeatData.Id = BlockchainPeers.GetSelfId()
-		ForwardHeartBeat(newHeartBeatData)
-	}
-	gotem := "gotem"
-	fmt.Fprint(w, gotem)
-}
-
-// Forward the received heartbeat to everyone on peerlist
-func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
-	remainingHops := heartBeatData.Hops
-	fmt.Printf("remaining hops: %v\n", remainingHops)
-	// Return if no more hops
-	if remainingHops == 0 {
-		return
-	}
-	// heartBeatData.Hops = remainingHops - 1
-	jsonHBBytes, err := json.Marshal(heartBeatData)
-	if err != nil {
-		fmt.Printf("err: %v\n", err)
-		return
-	}
-	jsonHB := string(jsonHBBytes)
-	//fmt.Printf("json heartbeat string: %v\n", jsonHB)
-	for addr := range BlockchainPeers.PeerMap {
-		if addr == SELF_ADDR {
-			fmt.Println("Forwarding: found own address???")
-			continue
-		} // Dont send to self
-		postData := url.Values{}
-		postData.Set("gamedata", jsonHB)
-		resp, err := http.PostForm(addr+"/heartbeat/receive", postData) // POST to server
-		if err != nil {
-			fmt.Printf("Heartbeat send error: %v\n", err)
-			return
-		}
-		resp.Body.Close()
-	}
-}
+//func HeartBeatReceive(w http.ResponseWriter, r *http.Request) {
+//	body, err := ioutil.ReadAll(r.Body)
+//	defer r.Body.Close()
+//	if err != nil {
+//		// Error occurred. Param was not an integer
+//		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
+//			http.StatusText(http.StatusInternalServerError))
+//		w.WriteHeader(http.StatusInternalServerError)
+//		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+//			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+//		return
+//	}
+//	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
+//	if err != nil {
+//		// Error occurred. Param was not an integer
+//		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+//			http.StatusText(http.StatusInternalServerError))
+//		w.WriteHeader(http.StatusInternalServerError)
+//		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+//			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+//		return
+//	}
+//	//fmt.Printf("body value: %v\n", parsedBodyValue)
+//	parsedData := parsedBodyValue["gamedata"][0] // Get first index
+//	var newHeartBeatData data.HeartBeatData
+//	err = json.Unmarshal([]byte(parsedData), &newHeartBeatData)
+//	if err != nil {
+//		// Error occurred. Param was not an integer
+//		fmt.Printf("unmarshal heartbeat - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+//			http.StatusText(http.StatusInternalServerError))
+//		w.WriteHeader(http.StatusInternalServerError)
+//		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+//			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+//		return
+//	}
+//	if newHeartBeatData.Addr == SELF_ADDR {
+//		fmt.Printf("HB was from self. ignoring...\n")
+//		return
+//	}
+//	// Add the remote nodes address and id to your peermap
+//	//fmt.Printf("incoming hb gamedata: %v, %v\n", newHeartBeatData.Addr, newHeartBeatData.Id)
+//	BlockchainPeers.Add(newHeartBeatData.Addr, newHeartBeatData.Id)
+//	// Add this nodes peermap into your own peermap (excluding your own address)
+//	newPeerMapJson := newHeartBeatData.PeerMapJson
+//	BlockchainPeers.InjectPeerMapJson(newPeerMapJson, SELF_ADDR)
+//
+//	// TODO: Do we want the dApp to be able to check validity of block creation? No chain is stored in the dApp
+//
+//	// Check if the block in the heartbeat is a new block
+//	//if newHeartBeatData.IfNewBlock {
+//	//hbBlock, err := p2.DecodeFromJSON(newHeartBeatData.BlockJson)
+//	//if err != nil {
+//	//	// Error occurred. Param was not an integer
+//	//	fmt.Printf("decodeing hb block - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+//	//		http.StatusText(http.StatusInternalServerError))
+//	//	w.WriteHeader(http.StatusInternalServerError)
+//	//	fmt.Fprint(w, fmt.Sprintf("%d - %s",
+//	//		http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+//	//	return
+//	//}
+//
+//	// Check if sender actually solved hash puzzle; then check parents
+//	//hashStr := hbBlock.Header.ParentHash + hbBlock.Header.Nonce + hbBlock.Value.Root
+//	//fmt.Printf("\thbBlock.Header.ParentHash: %v\n", hbBlock.Header.ParentHash)
+//	//fmt.Printf("\tNonce: %v\n", hbBlock.Header.Nonce)
+//	//fmt.Printf("\tRoot: %v\n", hbBlock.Value.Root)
+//	//sum := sha3.Sum256([]byte(hashStr))
+//	//encodedStr := hex.EncodeToString(sum[:])
+//	////fmt.Printf("\tencoded str: %v\n", encodedStr)
+//	//validChars := 0
+//
+//	//hasSolved := false
+//	//for i := 0; i < len(encodedStr); i++ { // break out of loop when reach max number to check
+//	//	if validChars >= MAX_NONCE {
+//	//		fmt.Println("Found valid nonce count!")
+//	//		hasSolved = true
+//	//		break
+//	//	}
+//	//	if string(encodedStr[i]) == "0" {
+//	//		validChars++
+//	//	} else { // Found non-zero before reaching end
+//	//		hasSolved = false
+//	//		break
+//	//	}
+//	//}
+//	//hasSolved = validChars == MAX_NONCE
+//	//fmt.Printf("sender has solved: %v\n", hasSolved)
+//	//if hasSolved { // If solved, check for parent blocks then insert into chain
+//	//	parentExists := SBC.CheckParentHash(hbBlock)
+//	//	// If parent doesnt exist, download it before inserting new block
+//	//	if !parentExists {
+//	//		AskForBlock(hbBlock.Header.Height, hbBlock.Header.Hash)
+//	//	}
+//	//	SBC.Insert(hbBlock)
+//	//}
+//	//}
+//
+//	// If heartbeat has hops, forward to peer list
+//	newHeartBeatDataHops := newHeartBeatData.Hops
+//	if newHeartBeatDataHops > 0 {
+//		newHeartBeatData.Hops = newHeartBeatDataHops - 1
+//		//newHeartBeatData.Addr = SELF_ADDR
+//		newHeartBeatData.Id = BlockchainPeers.GetSelfId()
+//		ForwardHeartBeat(newHeartBeatData)
+//	}
+//	gotem := "gotem"
+//	fmt.Fprint(w, gotem)
+//}
+//
+//// Forward the received heartbeat to everyone on peerlist
+//func ForwardHeartBeat(heartBeatData data.HeartBeatData) {
+//	remainingHops := heartBeatData.Hops
+//	fmt.Printf("remaining hops: %v\n", remainingHops)
+//	// Return if no more hops
+//	if remainingHops == 0 {
+//		return
+//	}
+//	// heartBeatData.Hops = remainingHops - 1
+//	jsonHBBytes, err := json.Marshal(heartBeatData)
+//	if err != nil {
+//		fmt.Printf("err: %v\n", err)
+//		return
+//	}
+//	jsonHB := string(jsonHBBytes)
+//	//fmt.Printf("json heartbeat string: %v\n", jsonHB)
+//	for addr := range BlockchainPeers.PeerMap {
+//		if addr == SELF_ADDR {
+//			fmt.Println("Forwarding: found own address???")
+//			continue
+//		} // Dont send to self
+//		postData := url.Values{}
+//		postData.Set("gamedata", jsonHB)
+//		resp, err := http.PostForm(addr+"/heartbeat/receive", postData) // POST to server
+//		if err != nil {
+//			fmt.Printf("Heartbeat send error: %v\n", err)
+//			return
+//		}
+//		resp.Body.Close()
+//	}
+//}
 
 // This is a special node that only listens in on blockchain changes from its peers/the chains miners. This
 // node does NOT mine/solve nonce. It only needs to know what blocks there are and to check the transactions
-func StartHeartBeat() {
-	randomRange := rand.Intn(10-5) + 5
-	ticker := time.NewTicker(time.Duration(randomRange) * time.Second)
-	go func() {
-		for t := range ticker.C {
-			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
-			fmt.Println("Sending heartbeat...")
-
-			pmJson, err := BlockchainPeers.PeerMapToJson()
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				return
-			}
-			preparedData := data.PrepareHeartBeatData(&data.SyncBlockChain{}, BlockchainPeers.GetSelfId(), pmJson, SELF_ADDR)
-			preparedJsonBytes, err := json.Marshal(preparedData)
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				return
-			}
-			preparedJson := string(preparedJsonBytes)
-			BlockchainPeers.Rebalance() // Call rebalance to check if peerlist needs to be rebalanced before sending heartbeat
-			for addr := range BlockchainPeers.PeerMap {
-				if addr == SELF_ADDR {
-					fmt.Println("\t\tFound own address.")
-					continue
-				} // Dont send to self
-				postData := url.Values{}
-				postData.Set("gamedata", preparedJson)
-				resp, err := http.PostForm(addr+"/heartbeat/receive", postData) // POST to server
-				if err != nil {
-					fmt.Printf("Heartbeat send rror: %v\n", err)
-					return
-				}
-				resp.Body.Close()
-			}
-
-			randomRange = rand.Intn(10-5) + 5
-			ticker = time.NewTicker(time.Duration(randomRange) * time.Second)
-		}
-	}()
-}
+//func StartHeartBeat() {
+//	randomRange := rand.Intn(10-5) + 5
+//	ticker := time.NewTicker(time.Duration(randomRange) * time.Second)
+//	go func() {
+//		for t := range ticker.C {
+//			_ = t // we don't print the ticker time, so assign this `t` variable to underscore `_` to avoid error
+//			fmt.Println("Sending heartbeat...")
+//
+//			pmJson, err := BlockchainPeers.PeerMapToJson()
+//			if err != nil {
+//				fmt.Printf("Error: %v\n", err)
+//				return
+//			}
+//			preparedData := data.PrepareHeartBeatData(&data.SyncBlockChain{}, BlockchainPeers.GetSelfId(), pmJson, SELF_ADDR)
+//			preparedJsonBytes, err := json.Marshal(preparedData)
+//			if err != nil {
+//				fmt.Printf("Error: %v\n", err)
+//				return
+//			}
+//			preparedJson := string(preparedJsonBytes)
+//			BlockchainPeers.Rebalance() // Call rebalance to check if peerlist needs to be rebalanced before sending heartbeat
+//			for addr := range BlockchainPeers.PeerMap {
+//				if addr == SELF_ADDR {
+//					fmt.Println("\t\tFound own address.")
+//					continue
+//				} // Dont send to self
+//				postData := url.Values{}
+//				postData.Set("gamedata", preparedJson)
+//				resp, err := http.PostForm(addr+"/heartbeat/receive", postData) // POST to server
+//				if err != nil {
+//					fmt.Printf("Heartbeat send rror: %v\n", err)
+//					return
+//				}
+//				resp.Body.Close()
+//			}
+//
+//			randomRange = rand.Intn(10-5) + 5
+//			ticker = time.NewTicker(time.Duration(randomRange) * time.Second)
+//		}
+//	}()
+//}

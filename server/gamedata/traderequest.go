@@ -3,6 +3,7 @@ package gamedata
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 )
 
 //- trade requests have their own id and the sellers id
@@ -27,11 +28,8 @@ type Demands struct {
 // Realistically some sort of db/SQL would store some gamedata maybe?
 // Required to know where a transaction is located rather than storing the transaction itself
 type RequestCache struct {
-	ReqCache map[int32]RequestBlockInfo //	[trade request id]request block info (height at which its stored)
-}
-
-type RequestBlockInfo struct {
-	Height int32 `json:"height"`
+	TradeRequests map[int32]TradeRequest `json:"tradeRequests"` //	[trade request id]request block info (height at which its stored)
+	mux           sync.Mutex
 }
 
 func (t *TradeRequest) EncodeRequestToJson() (string, error) {
@@ -56,4 +54,10 @@ func (t *TradeRequest) EncodeRequestToJson() (string, error) {
 		return "", err
 	}
 	return jsonOut, nil
+}
+
+func (r *RequestCache) AddToRequestCache(req TradeRequest) {
+	r.mux.Lock()
+	defer r.mux.Unlock()
+	r.TradeRequests[req.Id] = req
 }
