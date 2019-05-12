@@ -176,3 +176,7 @@ func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillme
 
 	return ful
 }
+
+func (fulfillment *TradeFulfillment) EncodeFulfillmentsToJson() (string, error) {
+	return "", nil
+}
