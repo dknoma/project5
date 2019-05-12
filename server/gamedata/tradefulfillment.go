@@ -8,6 +8,7 @@ import (
 
 type TradeFulfillment struct {
 	Id          int32     `json:"id"`
+	RequestId   int32     `json:"requestId"`
 	Seller      int32     `json:"seller"`
 	Buyer       int32     `json:"buyer"`
 	Item        Equipment `json:"item"`
@@ -49,8 +50,8 @@ func (fulfillment *TradeFulfillment) EncodeFulfillmentToJson() (string, error) {
 		fmt.Println(err.Error())
 		return "", err
 	}
-	jsonOut := fmt.Sprintf("{\"id\": \"%v\",\"seller\": %v,\"buyer\": %v,\"item\": %v,\"sellerYield\": %v,\"buyerYield\": %v,\"minerYield\": %v}",
-		fulfillment.Id, fulfillment.Seller, fulfillment.Buyer, item, fulfillment.SellerYield, fulfillment.BuyerYield, fulfillment.MinerYield)
+	jsonOut := fmt.Sprintf("{\"id\": \"%v\",\"requestId\":%v,\"seller\": %v,\"buyer\": %v,\"item\": %v,\"sellerYield\": %v,\"buyerYield\": %v,\"minerYield\": %v}",
+		fulfillment.Id, fulfillment.RequestId, fulfillment.Seller, fulfillment.Buyer, item, fulfillment.SellerYield, fulfillment.BuyerYield, fulfillment.MinerYield)
 	isValid := json.Valid([]byte(jsonOut))
 	if !isValid {
 		fmt.Println(err.Error())
@@ -71,6 +72,7 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 	// Create new TradeFulfillment to insert unmarshalled values into
 	var f TradeFulfillment
 	f.Id = int32(fulfillmentMap["id"].(float64))
+	f.RequestId = int32(fulfillmentMap["requestId"].(float64))
 	f.Seller = int32(fulfillmentMap["sellerId"].(float64))
 	f.Buyer = int32(fulfillmentMap["buyerId"].(float64))
 
@@ -92,21 +94,44 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 }
 
 // {"tradeFulfillment": {“sellerId”: 6690,“buyerId”: 6684,“item”: {"name": "sword",“id”: 2,“owner”: 1,“description”: “This is a sword I got from a slime.”,"stats" : {"level": 1,"atk": 5,“def”: 5}},“sellerYield”: {“currency”: 1000},“buyerYield”: {“currency”: -1000},“minerYield”: {“currency”: 10}}}
-func (fulfillments *TradeFulfillments) TryRemoveFulfillments(fulfilledTradesJson string) bool {
+//func (fulfillments *TradeFulfillments) TryRemoveFulfillments(fulfilledTradesJson string) bool {
+//	fulfillments.mux.Lock()
+//	defer fulfillments.mux.Unlock()
+//	// Do decode
+//	fulfillmentsToRemove, success := DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson)
+//	if !success {
+//		return false
+//	}
+//	fmt.Printf("b4 reduced fulfillments %v\n", fulfillments.Fulfillments)
+//	// try delete
+//	for id := range fulfillmentsToRemove.Fulfillments {
+//		delete(fulfillments.Fulfillments, id)
+//	}
+//	fmt.Printf("reduced fulfillments %v\n", fulfillments.Fulfillments)
+//	return true
+//}
+
+func (fulfillments *TradeFulfillments) RemoveFulfillment(id int32) {
 	fulfillments.mux.Lock()
 	defer fulfillments.mux.Unlock()
-	// Do decode
+	delete(fulfillments.Fulfillments, id)
+}
+
+// When miner successfully creates a block, need to get the ids of fulfillments to remove
+func GetFulfillmentIdsFromJson(fulfilledTradesJson string) []int32 {
+	// TODO: get ids
+	//  	 get request ids
+	//  	 remove those requests
+	//  	 remove from fulfillment cache
 	fulfillmentsToRemove, success := DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson)
 	if !success {
-		return false
+		return []int32{}
 	}
-	fmt.Printf("b4 reduced fulfillments %v\n", fulfillments.Fulfillments)
-	// try delete
+	var ids []int32
 	for id := range fulfillmentsToRemove.Fulfillments {
-		delete(fulfillments.Fulfillments, id)
+		ids = append(ids, id)
 	}
-	fmt.Printf("reduced fulfillments %v\n", fulfillments.Fulfillments)
-	return true
+	return ids
 }
 
 // Decode json string -> []interface{} -> TradeFulfillments
@@ -133,6 +158,7 @@ func DecodeFulfillmentJsonArrayToInterface(fulfilledTradesJson string) (TradeFul
 func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillment {
 	var ful TradeFulfillment
 	ful.Id = int32(fromMap["id"].(float64))
+	ful.RequestId = int32(fromMap["requestId"].(float64))
 	ful.Seller = int32(fromMap["sellerId"].(float64))
 	ful.Buyer = int32(fromMap["buyerId"].(float64))
 	eqpMap := fromMap["item"].(map[string]interface{})

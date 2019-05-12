@@ -1,5 +1,7 @@
 package gamedata
 
+import "sync"
+
 type User struct {
 	Id        int32       `json:"id"`
 	Equipment []Equipment `json:"inventory"`
@@ -9,12 +11,20 @@ type User struct {
 // User list is kept server side NOT in blockchain
 type Users struct {
 	Users map[int32]User `json:"users"` // Maps user id to user
+	mux   sync.Mutex
 }
 
 var nextWeaponId = int32(0)
 
 func (users *Users) InitUserList() {
 	users.Users = make(map[int32]User)
+}
+
+func (users *Users) AddUser(id int32) {
+	users.mux.Lock()
+	newUser := User{Id: id, Equipment: []Equipment{}, Currency: 10000}
+	newUser.GenerateEquipment()
+	users.mux.Unlock()
 }
 
 func (user *User) GenerateEquipment() {

@@ -137,11 +137,8 @@ func Register() {
 // Allow users to create an "account" (just a basic user)
 func CreateAccount(w http.ResponseWriter, r *http.Request) {
 	clientId := int32(nextUserId)
-	// Create a new use
-	newUser := gamedata.User{Id: clientId, Equipment: []gamedata.Equipment{}, Currency: 10000}
-	newUser.GenerateEquipment()
-	// Add new user to user list
-	UserList.Users[clientId] = newUser
+	// Create a new user
+	UserList.AddUser(clientId)
 	nextUserId++
 	fmt.Fprint(w, clientId)
 }

@@ -61,3 +61,9 @@ func (r *RequestCache) AddToRequestCache(req TradeRequest) {
 	defer r.mux.Unlock()
 	r.TradeRequests[req.Id] = req
 }
+
+func (r *RequestCache) RemoveFromRequestCache(id int32) {
+	r.mux.Lock()
+	defer r.mux.Unlock()
+	delete(r.TradeRequests, id)
+}
