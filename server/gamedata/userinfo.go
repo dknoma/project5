@@ -8,7 +8,7 @@ import (
 type User struct {
 	Id        int32     `json:"id"`
 	Inventory Inventory `json:"inventory"`
-	Currency  int32     `json:"currency"`
+	Currency  float64   `json:"currency"`
 }
 
 type Inventory struct {
@@ -64,7 +64,7 @@ func (user *User) GenerateEquipment() {
 }
 
 // If user has enough currency, can lower their currency.
-func (users *Users) HasEnoughCurrency(userId, price int32) bool {
+func (users *Users) HasEnoughCurrency(userId int32, price float64) bool {
 	user := users.Users[userId]
 	return user.Currency-price >= 0
 }

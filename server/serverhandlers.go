@@ -38,6 +38,7 @@ var UserList gamedata.Users
 
 var nextUserId = int32(0)
 var nextTradeRequestId = int32(0)
+var nextTradeFulfillmentId = int32(0)
 var ifStarted bool
 
 func init() {
@@ -150,16 +151,7 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 // 	"sellerId": id
 // 	"demands": json
 func CreateRequest(w http.ResponseWriter, r *http.Request) {
-	// TODO: get POST body of item json, seller id, (if actual app would have database w/ user ids, etc...)
-	//		 as well as the demand json (desired currency)
-	//		 How to store tx in MPT? Function in main bc nodes that update the MPT to use for a miner's block
-	//		 Make it so MPT isn't randomly generated, but instead contains the gamedata from requests and fulfillments
-	//		 	This might make it so whenever the MPT is changed, the nonce must start over. Ensures that they are in a block
-	//				if NEED to ensure that all trade requests are put up in the marketplace
-	//			OR functions that just updates the mpt to use
-	//				may not be as reliable
-	// 		- Still allows for multiple requests for the same item.
-	//fmt.Printf("Trade request ID: %v", id)
+	// TODO: Still allows for multiple requests for the same item.
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -182,10 +174,6 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("body value: %v\n", parsedBodyValue) // Print out the parsed body value
-	// TODO: Store this trade request in a trade request database: this allows a non-existent theoretical frontend
-	//		 to actuall display this trades for players to actually see and interact with. Unless there is an efficient
-	//		 way to store
-
 	// Convert to id from the map to an int, to int32
 	id, err := strconv.Atoi(parsedBodyValue["seller"][0])
 	sellerId := int32(id)
@@ -203,55 +191,47 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("demands %v\n", demands)
+	// try to create the trade request
+	out, success := tryCreateRequest(sellerId, equipmentSlot, demands)
+	if !success {
+		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	// Print out trade request json to client
+	fmt.Fprint(w, out)
+}
 
+func tryCreateRequest(sellerId int32, equipmentSlot int, demands gamedata.Demands) (string, bool) {
 	seller, sellerExists := UserList.Users[sellerId] // actual user of the seller
 	fmt.Printf("seller %v\n", seller)
 	if !sellerExists || equipmentSlot > len(seller.Inventory.Equipment) || equipmentSlot < 0 {
 		// Seller doesn't exist || equipment slot doesnt exist
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-		return
+		return "Unable to create request.", false
 	}
 	equipmentToSell := seller.Inventory.Equipment[equipmentSlot] // the equipment from the sellers inventory
 	if gamedata.EquipmentIsEmpty(equipmentToSell) {
 		// equipment is empty/doesnt exist
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-		return
+		return "Unable to create request.", false
 	}
 	//fmt.Printf("seller id: %v, equipment slot: %v, cost: %v, seller: %v, equipment: %v\n", sellerId, equipmentSlot,
 	//	demands.Currency, seller, equipmentToSell)
-
-	//var newTradeRequest gamedata.TradeRequest
-	newTradeRequest := gamedata.TradeRequest{nextTradeRequestId, sellerId, equipmentToSell, demands}
+	newTradeRequest := gamedata.TradeRequest{Id: nextTradeRequestId, Seller: sellerId, Item: equipmentToSell, Demands: demands}
 	TradeRequests.AddToRequestCache(newTradeRequest)
 	fmt.Printf("new request: %v\n", newTradeRequest)
 	nextTradeRequestId++
-
-	// seller id
-	// equipment slot (slot of the equipment in the users account)
-	//		get the equipment json from this slot in the users inventory
-	// demand cost
-	// 		verify if seller id exists
-	//		verify if equipment actually exists in the player's inventory
-	//		verify valid demand
-	//		create request and store into db
-	// Might make sense to store the requests OFF chain, and ONLY fulfillments ON chain
-	//		A game based off of blockchain where miners are also players and whatnot, having everything on chain would make more sense
+	req, err := newTradeRequest.EncodeRequestToJson()
+	if err != nil {
+		// Unable to enccode trade request
+		return "Unable to create request.", false
+	}
+	return req, true
 }
 
 func ViewRequest(w http.ResponseWriter, r *http.Request) {
-	// TODO: IF STORING REQUESTS IN CHAIN: To view a request it MUST be in the canonical chain. Must make a call to GetCanonical and check if the tx
-	//			exists in that chain. Probably have some sort of cache to store tx requestId to height (private bc)
-	//		 ELSE
-	//			Storing in off chain db that just stores requests in order to show them in the front end
-	//
 	p := strings.Split(r.URL.Path, "/") // split url paths
 	reqId, err := strconv.Atoi(p[3])
 	requestId := int32(reqId)
@@ -287,7 +267,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	// TODO: get potential json (total currency (real app would have an actual service to take care of these checks)),
 	//		 from POST, grab request id from params and find the req by id
 	p := strings.Split(r.URL.Path, "/") // split url paths
-	id, err := strconv.Atoi(p[2])
+	id, err := strconv.Atoi(p[3])
 	if err != nil {
 		// Error occurred. Param was not an integer
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
@@ -298,8 +278,8 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Trade request ID: %v", id)
-
-	tradeReq, exists := TradeRequests.TradeRequests[int32(id)]
+	tradeReqId := int32(id)
+	tradeReq, exists := TradeRequests.TradeRequests[tradeReqId]
 	if !exists {
 		// Trade request doesn't exist
 		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
@@ -335,13 +315,51 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//fmt.Printf("body value: %v\n", parsedBodyValue)
-	parsedData := parsedBodyValue["data"][0] // Get first index
-	fmt.Printf("stuff %v\n", parsedData)
+	bId, err := strconv.Atoi(parsedBodyValue["buyer"][0]) // Get first index
+	if err != nil {
+		// Error occurred.
+		fmt.Printf("string conversion - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	buyerId := int32(bId)
+	fmt.Printf("buyer id %v\n", buyerId)
+	buyerExists := UserList.UserExists(buyerId)
+	if !buyerExists {
+		// Error occurred.
+		fmt.Printf("user - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	bounty := tradeReq.Demands.Currency
+	hasEnoughCurrency := UserList.HasEnoughCurrency(buyerId, bounty)
+	if !hasEnoughCurrency {
+		// Error occurred.
+		fmt.Printf("currency - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	// Create the fulfillment
+	minerYield := calculateMinerYield(bounty)
+	newFulfillment := gamedata.NewFulfillment(nextTradeFulfillmentId, tradeReqId, tradeReq.Seller, buyerId, tradeReq.Item,
+		bounty-minerYield, -bounty, minerYield)
+	fmt.Printf("ful: %v\n", newFulfillment)
+	fulJson, err := newFulfillment.EncodeFulfillmentToJson()
+	fmt.Fprint(w, fulJson)
+}
 
-	// get buyer id
-	//		verify that the buyer id is valid
-	//
-	//
+// 2% yield
+func calculateMinerYield(bounty float64) float64 {
+	return bounty * 0.02
 }
 
 // Miners get an array of pending transactions to put into their mpt to mine
@@ -358,7 +376,9 @@ func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
 //	//PendingTradeFulfillments
 //}
 
-// Called by miner when successfully mines a block
+// Called by miner when successfully mines a block, tho miner could fake this data
+// Maybe dApp calls into the chain, views the latest block, then removes those tx from list
+//
 func UpdatePendingTransactions(w http.ResponseWriter, r *http.Request) {
 
 }

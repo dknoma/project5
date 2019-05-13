@@ -20,7 +20,7 @@ type TradeRequest struct {
 }
 
 type Demands struct {
-	Currency int32 `json:"currency"`
+	Currency float64 `json:"currency"`
 	// TODO: optionally, could have an []Items to allow users to request money + item(s)
 	//		 NO CANCELING TRADE REQUESTS AT THIS MOMENT. This will be one of the later features if time allows
 }

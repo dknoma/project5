@@ -19,7 +19,7 @@ type Equipment struct {
 	Stats       EquipmentStats `json:"stats"`       // Equipment stats
 }
 
-func New(name string, id int32, owner int32, description string, level, atk, def int32) Equipment {
+func NewEquipment(name string, id int32, owner int32, description string, level, atk, def int32) Equipment {
 	return Equipment{name, id, owner, description, EquipmentStats{level, atk, def}}
 }
 

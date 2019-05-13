@@ -12,9 +12,9 @@ type TradeFulfillment struct {
 	Seller      int32     `json:"seller"`
 	Buyer       int32     `json:"buyer"`
 	Item        Equipment `json:"item"`
-	SellerYield int32     `json:"sellerYield"`
-	BuyerYield  int32     `json:"buyerYield"`
-	MinerYield  int32     `json:"minerYield"`
+	SellerYield float64   `json:"sellerYield"`
+	BuyerYield  float64   `json:"buyerYield"`
+	MinerYield  float64   `json:"minerYield"`
 }
 
 type TradeFulfillments struct {
@@ -28,6 +28,12 @@ type TradeFulfillments struct {
 
 func (fulfillments *TradeFulfillments) InitTradeFulfillments() {
 	fulfillments.Fulfillments = make(map[int32]TradeFulfillment)
+}
+
+func NewFulfillment(id, requestId, sellerId, buyerId int32, item Equipment, sellerYield, buyerYield, minerYield float64) TradeFulfillment {
+	newFulfillment := TradeFulfillment{Id: id, RequestId: requestId, Seller: sellerId, Buyer: buyerId,
+		Item: item, SellerYield: sellerYield, BuyerYield: buyerYield, MinerYield: minerYield}
+	return newFulfillment
 }
 
 func (fulfillments *TradeFulfillments) AddFulfillment(fulfillment TradeFulfillment) {
@@ -87,9 +93,9 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 	}
 
 	f.Item = eqp
-	f.SellerYield = int32(fulfillmentMap["sellerYield"].(float64))
-	f.BuyerYield = int32(fulfillmentMap["buyerYield"].(float64))
-	f.MinerYield = int32(fulfillmentMap["minerYield"].(float64))
+	f.SellerYield = fulfillmentMap["sellerYield"].(float64)
+	f.BuyerYield = fulfillmentMap["buyerYield"].(float64)
+	f.MinerYield = fulfillmentMap["minerYield"].(float64)
 	return f, nil
 }
 
@@ -170,9 +176,9 @@ func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillme
 	e.Description = eqpMap["description"].(string)
 
 	ful.Item = e
-	ful.SellerYield = int32(fromMap["sellerYield"].(float64))
-	ful.BuyerYield = int32(fromMap["buyerYield"].(float64))
-	ful.MinerYield = int32(fromMap["minerYield"].(float64))
+	ful.SellerYield = fromMap["sellerYield"].(float64)
+	ful.BuyerYield = fromMap["buyerYield"].(float64)
+	ful.MinerYield = fromMap["minerYield"].(float64)
 
 	return ful
 }
