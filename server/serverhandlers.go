@@ -344,9 +344,24 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	//
 }
 
+// Miners get an array of pending transactions to put into their mpt to mine
+func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
+	//PendingTradeFulfillments
+}
+
 //TODO: In order to check the blockchain for trades, must access the blockchain somehow. In order to do this
 //		must check the chain from the peerlist. Maybe this server is a listener on the blockchain network BUT
 //		does NOT mine.
+
+//// Verify the list of pending transactions
+//func VerifyTransaction(txJsonArray string) {
+//	//PendingTradeFulfillments
+//}
+
+// Called by miner when successfully mines a block
+func UpdatePendingTransactions(w http.ResponseWriter, r *http.Request) {
+
+}
 
 // Ask another server to return a block of certain height and hash
 // Gets called by HeartBeatReceive
