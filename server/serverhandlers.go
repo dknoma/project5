@@ -327,34 +327,40 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	buyerId := int32(bId)
 	fmt.Printf("buyer id %v\n", buyerId)
-	buyerExists := UserList.UserExists(buyerId)
-	if !buyerExists {
+	// Try to create the new fulfillment
+	newFulfillment, validReqs := tryCreateFulfillment(buyerId, tradeReq)
+	if !validReqs {
 		// Error occurred.
-		fmt.Printf("user - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+		fmt.Printf("try create fulfillment - error: %v | %v - %v\n", err, http.StatusInternalServerError,
 			http.StatusText(http.StatusInternalServerError))
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, fmt.Sprintf("%d - %s",
 			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 		return
+	}
+	fmt.Printf("ful: %v\n", newFulfillment)
+	// Add fulfillment to pending
+	PendingTradeFulfillments.Fulfillments[newFulfillment.Id] = newFulfillment
+	fulJson, err := newFulfillment.EncodeFulfillmentToJson()
+	fmt.Fprint(w, fulJson)
+}
+
+// Check if the buyer exists, check if they have enough currency
+func tryCreateFulfillment(buyerId int32, tradeReq gamedata.TradeRequest) (gamedata.TradeFulfillment, bool) {
+	buyerExists := UserList.UserExists(buyerId)
+	if !buyerExists {
+		return gamedata.TradeFulfillment{}, false
 	}
 	bounty := tradeReq.Demands.Currency
 	hasEnoughCurrency := UserList.HasEnoughCurrency(buyerId, bounty)
 	if !hasEnoughCurrency {
-		// Error occurred.
-		fmt.Printf("currency - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
-		return
+		return gamedata.TradeFulfillment{}, false
 	}
 	// Create the fulfillment
 	minerYield := calculateMinerYield(bounty)
-	newFulfillment := gamedata.NewFulfillment(nextTradeFulfillmentId, tradeReqId, tradeReq.Seller, buyerId, tradeReq.Item,
+	newFulfillment := gamedata.NewFulfillment(nextTradeFulfillmentId, tradeReq.Id, tradeReq.Seller, buyerId, tradeReq.Item,
 		bounty-minerYield, -bounty, minerYield)
-	fmt.Printf("ful: %v\n", newFulfillment)
-	fulJson, err := newFulfillment.EncodeFulfillmentToJson()
-	fmt.Fprint(w, fulJson)
+	return newFulfillment, true
 }
 
 // 2% yield
