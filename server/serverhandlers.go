@@ -156,21 +156,13 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "reading body")
 		return
 	}
 	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "query parsing")
 		return
 	}
 	fmt.Printf("body value: %v\n", parsedBodyValue) // Print out the parsed body value
@@ -183,22 +175,14 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	demands, err := gamedata.DecodeDemandJson(demandJson)
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "body value")
 		return
 	}
 	fmt.Printf("demands %v\n", demands)
 	// try to create the trade request
 	out, success := tryCreateRequest(sellerId, equipmentSlot, demands)
 	if !success {
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "trade req")
 		return
 	}
 	// Print out trade request json to client
@@ -237,11 +221,7 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	requestId := int32(reqId)
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("%v - %v || couldn't convert id.\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "strconv")
 		return
 	}
 	fmt.Printf("Trade request ID: %v", requestId)
@@ -252,11 +232,7 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	tradeRequestJson, exists := TradeRequests.TradeRequests[requestId]
 	if !exists {
 		// Error occurred. Param was not an integer
-		fmt.Printf("%v - %v || trade doesnt exist\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "trade req")
 		return
 	}
 	fmt.Printf("tradeRequestJson: %v", tradeRequestJson)
@@ -270,11 +246,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(p[3])
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "strconv")
 		return
 	}
 	fmt.Printf("Trade request ID: %v", id)
@@ -282,47 +254,29 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	tradeReq, exists := TradeRequests.TradeRequests[tradeReqId]
 	if !exists {
 		// Trade request doesn't exist
-		fmt.Printf("%v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "trade req")
 		return
 	}
-
 	fmt.Printf("trade req: %v\n", tradeReq)
-
 	// Read the POST body from the client
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
 		// Error occurred. Param was not an integer
-		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "reading body")
 		return
 	}
 	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
 	if err != nil {
 		// Error occurred.
-		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "query parsing")
 		return
 	}
 	//fmt.Printf("body value: %v\n", parsedBodyValue)
 	bId, err := strconv.Atoi(parsedBodyValue["buyer"][0]) // Get first index
 	if err != nil {
 		// Error occurred.
-		fmt.Printf("string conversion - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "string conversion")
 		return
 	}
 	buyerId := int32(bId)
@@ -331,11 +285,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	newFulfillment, validReqs := tryCreateFulfillment(buyerId, tradeReq)
 	if !validReqs {
 		// Error occurred.
-		fmt.Printf("try create fulfillment - error: %v | %v - %v\n", err, http.StatusInternalServerError,
-			http.StatusText(http.StatusInternalServerError))
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, fmt.Sprintf("%d - %s",
-			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return500(w, "try create fulfillment")
 		return
 	}
 	fmt.Printf("ful: %v\n", newFulfillment)
@@ -343,6 +293,14 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	PendingTradeFulfillments.Fulfillments[newFulfillment.Id] = newFulfillment
 	fulJson, err := newFulfillment.EncodeFulfillmentToJson()
 	fmt.Fprint(w, fulJson)
+}
+
+func return500(w http.ResponseWriter, str string) {
+	fmt.Printf("%v - error: %v - %v\n", str, http.StatusInternalServerError,
+		http.StatusText(http.StatusInternalServerError))
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(w, fmt.Sprintf("%d - %s",
+		http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
 }
 
 // Check if the buyer exists, check if they have enough currency
