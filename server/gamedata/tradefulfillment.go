@@ -3,6 +3,7 @@ package gamedata
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -183,6 +184,20 @@ func DecodeInterfaceToFulfillment(fromMap map[string]interface{}) TradeFulfillme
 	return ful
 }
 
-func (fulfillment *TradeFulfillment) EncodeFulfillmentsToJson() (string, error) {
-	return "", nil
+func (fulfillments *TradeFulfillments) EncodeFulfillmentsToJson() (string, error) {
+	var jsonOut string
+	sb := strings.Builder{}
+	sb.WriteString("[")
+	for _, v := range fulfillments.Fulfillments {
+		jsonOut, err := v.EncodeFulfillmentToJson()
+		if err != nil {
+			return "", err
+		}
+		sb.WriteString(jsonOut)
+		sb.WriteString(",")
+	}
+	jsonOut = sb.String()
+	jsonOut = jsonOut[:len(jsonOut)-1]
+	jsonOut += "]"
+	return jsonOut, nil
 }

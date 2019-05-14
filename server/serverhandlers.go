@@ -156,13 +156,13 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		// Error occurred. Param was not an integer
-		return500(w, "reading body")
+		returnServerError(w, "reading body")
 		return
 	}
 	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
 	if err != nil {
 		// Error occurred. Param was not an integer
-		return500(w, "query parsing")
+		returnServerError(w, "query parsing")
 		return
 	}
 	fmt.Printf("body value: %v\n", parsedBodyValue) // Print out the parsed body value
@@ -175,14 +175,14 @@ func CreateRequest(w http.ResponseWriter, r *http.Request) {
 	demands, err := gamedata.DecodeDemandJson(demandJson)
 	if err != nil {
 		// Error occurred. Param was not an integer
-		return500(w, "body value")
+		returnServerError(w, "body value")
 		return
 	}
 	fmt.Printf("demands %v\n", demands)
 	// try to create the trade request
 	out, success := tryCreateRequest(sellerId, equipmentSlot, demands)
 	if !success {
-		return500(w, "trade req")
+		returnServerError(w, "trade req")
 		return
 	}
 	// Print out trade request json to client
@@ -221,7 +221,7 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	requestId := int32(reqId)
 	if err != nil {
 		// Error occurred. Param was not an integer
-		return500(w, "strconv")
+		returnServerError(w, "strconv")
 		return
 	}
 	fmt.Printf("Trade request ID: %v", requestId)
@@ -232,7 +232,7 @@ func ViewRequest(w http.ResponseWriter, r *http.Request) {
 	tradeRequestJson, exists := TradeRequests.TradeRequests[requestId]
 	if !exists {
 		// Error occurred. Param was not an integer
-		return500(w, "trade req")
+		returnServerError(w, "trade req")
 		return
 	}
 	fmt.Printf("tradeRequestJson: %v", tradeRequestJson)
@@ -246,7 +246,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(p[3])
 	if err != nil {
 		// Error occurred. Param was not an integer
-		return500(w, "strconv")
+		returnServerError(w, "strconv")
 		return
 	}
 	fmt.Printf("Trade request ID: %v", id)
@@ -254,7 +254,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	tradeReq, exists := TradeRequests.TradeRequests[tradeReqId]
 	if !exists {
 		// Trade request doesn't exist
-		return500(w, "trade req")
+		returnServerError(w, "trade req")
 		return
 	}
 	fmt.Printf("trade req: %v\n", tradeReq)
@@ -263,20 +263,20 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 	if err != nil {
 		// Error occurred. Param was not an integer
-		return500(w, "reading body")
+		returnServerError(w, "reading body")
 		return
 	}
 	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
 	if err != nil {
 		// Error occurred.
-		return500(w, "query parsing")
+		returnServerError(w, "query parsing")
 		return
 	}
 	//fmt.Printf("body value: %v\n", parsedBodyValue)
 	bId, err := strconv.Atoi(parsedBodyValue["buyer"][0]) // Get first index
 	if err != nil {
 		// Error occurred.
-		return500(w, "string conversion")
+		returnServerError(w, "string conversion")
 		return
 	}
 	buyerId := int32(bId)
@@ -285,7 +285,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	newFulfillment, validReqs := tryCreateFulfillment(buyerId, tradeReq)
 	if !validReqs {
 		// Error occurred.
-		return500(w, "try create fulfillment")
+		returnServerError(w, "try create fulfillment")
 		return
 	}
 	fmt.Printf("ful: %v\n", newFulfillment)
@@ -295,7 +295,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, fulJson)
 }
 
-func return500(w http.ResponseWriter, str string) {
+func returnServerError(w http.ResponseWriter, str string) {
 	fmt.Printf("%v - error: %v - %v\n", str, http.StatusInternalServerError,
 		http.StatusText(http.StatusInternalServerError))
 	w.WriteHeader(http.StatusInternalServerError)
@@ -329,6 +329,7 @@ func calculateMinerYield(bounty float64) float64 {
 // Miners get an array of pending transactions to put into their mpt to mine
 func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
 	//PendingTradeFulfillments
+	//pendingJson, err := PendingTradeFulfillments.
 }
 
 //TODO: In order to check the blockchain for trades, must access the blockchain somehow. In order to do this
