@@ -57,7 +57,7 @@ func (fulfillment *TradeFulfillment) EncodeFulfillmentToJson() (string, error) {
 		fmt.Println(err.Error())
 		return "", err
 	}
-	jsonOut := fmt.Sprintf("{\"id\": \"%v\",\"requestId\":%v,\"seller\": %v,\"buyer\": %v,\"item\": %v,\"sellerYield\": %v,\"buyerYield\": %v,\"minerYield\": %v}",
+	jsonOut := fmt.Sprintf("{\"id\": %v,\"requestId\":%v,\"sellerId\": %v,\"buyerId\": %v,\"item\": %v,\"sellerYield\": %v,\"buyerYield\": %v,\"minerYield\": %v}",
 		fulfillment.Id, fulfillment.RequestId, fulfillment.Seller, fulfillment.Buyer, item, fulfillment.SellerYield, fulfillment.BuyerYield, fulfillment.MinerYield)
 	isValid := json.Valid([]byte(jsonOut))
 	if !isValid {
@@ -197,7 +197,9 @@ func (fulfillments *TradeFulfillments) EncodeFulfillmentsToJson() (string, error
 		sb.WriteString(",")
 	}
 	jsonOut = sb.String()
-	jsonOut = jsonOut[:len(jsonOut)-1]
+	if len(jsonOut) > 2 {
+		jsonOut = jsonOut[:len(jsonOut)-1]
+	}
 	jsonOut += "]"
 	return jsonOut, nil
 }

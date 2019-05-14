@@ -292,6 +292,7 @@ func FulfillRequest(w http.ResponseWriter, r *http.Request) {
 	// Add fulfillment to pending
 	PendingTradeFulfillments.Fulfillments[newFulfillment.Id] = newFulfillment
 	fulJson, err := newFulfillment.EncodeFulfillmentToJson()
+	fmt.Printf("all pending: %v\n", PendingTradeFulfillments.Fulfillments)
 	fmt.Fprint(w, fulJson)
 }
 
@@ -327,14 +328,18 @@ func calculateMinerYield(bounty float64) float64 {
 }
 
 // Miners get an array of pending transactions to put into their mpt to mine
+// how to insert these transactions into the mpt?
 func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
 	//PendingTradeFulfillments
-	//pendingJson, err := PendingTradeFulfillments.
+	pendingJson, err := PendingTradeFulfillments.EncodeFulfillmentsToJson()
+	if err != nil {
+		// Error occurred.
+		returnServerError(w, "fulfillment json")
+		return
+	}
+	fmt.Printf("pending json: %v\n", pendingJson)
+	fmt.Fprintf(w, pendingJson)
 }
-
-//TODO: In order to check the blockchain for trades, must access the blockchain somehow. In order to do this
-//		must check the chain from the peerlist. Maybe this server is a listener on the blockchain network BUT
-//		does NOT mine.
 
 //// Verify the list of pending transactions
 //func VerifyTransaction(txJsonArray string) {
@@ -342,8 +347,8 @@ func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
 //}
 
 // Called by miner when successfully mines a block, tho miner could fake this data
-// Maybe dApp calls into the chain, views the latest block, then removes those tx from list
-//
+// TODO: takes whatever ids it can get from the json, remove those pending transactions; there is currently no authentication
+//		 to make sure that miners aren't lying.
 func UpdatePendingTransactions(w http.ResponseWriter, r *http.Request) {
 
 }
