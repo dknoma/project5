@@ -350,7 +350,57 @@ func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
 // TODO: takes whatever ids it can get from the json, remove those pending transactions; there is currently no authentication
 //		 to make sure that miners aren't lying.
 func UpdatePendingTransactions(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("reading body: %v - %v\n", http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	parsedBodyValue, err := url.ParseQuery(string(body)) // Parse request body into a Value
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
+	parsedData := parsedBodyValue["data"][0] // Get first index
+	fmt.Printf("parsedData body value: %v\n", parsedData)
+	//var fulfillmentsToUpdate gamedata.TradeFulfillments
+	fulfillmentsToUpdate, err := gamedata.DecodeFulfillmentJsonArrayToInterface(parsedData)
+	//err = json.Unmarshal([]byte(parsedData), &fulfillmentsToUpdate)
+	if err != nil {
+		// Error occurred. Param was not an integer
+		fmt.Printf("query parsing - error: %v | %v - %v\n", err, http.StatusInternalServerError,
+			http.StatusText(http.StatusInternalServerError))
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, fmt.Sprintf("%d - %s",
+			http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError)))
+		return
+	}
 
+	fmt.Printf("fff %v\n", fulfillmentsToUpdate)
+	for id := range fulfillmentsToUpdate.Fulfillments {
+		//delete(PendingTradeFulfillments.Fulfillments, id)
+		updateTradeDatabase(id)
+	}
+}
+
+func updateTradeDatabase(id int32) {
+	fmt.Printf("req: before remove: %v\n", TradeRequests.TradeRequests)
+	fmt.Printf("ful: before remove: %v\n", PendingTradeFulfillments.Fulfillments)
+	ful := PendingTradeFulfillments.Fulfillments[id]
+	delete(TradeRequests.TradeRequests, ful.RequestId)
+	delete(PendingTradeFulfillments.Fulfillments, id)
+	fmt.Printf("req: after remove: %v\n", TradeRequests.TradeRequests)
+	fmt.Printf("ful: after remove: %v\n", PendingTradeFulfillments.Fulfillments)
 }
 
 // Ask another server to return a block of certain height and hash
