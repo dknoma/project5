@@ -23,10 +23,6 @@ type TradeFulfillments struct {
 	mux          sync.Mutex
 }
 
-//type FulfillmentList struct {
-//	FulfillmentList []string `json:"fulfillmentList"`
-//}
-
 func (fulfillments *TradeFulfillments) InitTradeFulfillments() {
 	fulfillments.Fulfillments = make(map[int32]TradeFulfillment)
 }
@@ -41,6 +37,18 @@ func (fulfillments *TradeFulfillments) AddFulfillment(fulfillment TradeFulfillme
 	fulfillments.mux.Lock()
 	defer fulfillments.mux.Unlock()
 	fulfillments.Fulfillments[fulfillment.Id] = fulfillment
+}
+
+func (fulfillments *TradeFulfillments) RemoveFulfillment(id int32) {
+	fulfillments.mux.Lock()
+	defer fulfillments.mux.Unlock()
+	delete(fulfillments.Fulfillments, id)
+}
+
+func (fulfillments *TradeFulfillments) GetFulfillment(id int32) TradeFulfillment {
+	fulfillments.mux.Lock()
+	defer fulfillments.mux.Unlock()
+	return fulfillments.Fulfillments[id]
 }
 
 func (fulfillment *TradeFulfillment) EncodeFulfillmentToJson() (string, error) {
@@ -117,12 +125,6 @@ func DecodeFulfillmentFromJSON(jsonString string) (TradeFulfillment, error) {
 //	fmt.Printf("reduced fulfillments %v\n", fulfillments.Fulfillments)
 //	return true
 //}
-
-func (fulfillments *TradeFulfillments) RemoveFulfillment(id int32) {
-	fulfillments.mux.Lock()
-	defer fulfillments.mux.Unlock()
-	delete(fulfillments.Fulfillments, id)
-}
 
 // When miner successfully creates a block, need to get the ids of fulfillments to remove
 func GetFulfillmentIdsFromJson(fulfilledTradesJson string) []int32 {

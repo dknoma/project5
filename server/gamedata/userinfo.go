@@ -43,10 +43,33 @@ func (user *User) AddEquipment(eqp Equipment) {
 	user.Inventory.mux.Unlock()
 }
 
-func (user *User) RemoveEquipment(slot int32) {
+func (user *User) RemoveEquipment(eqp Equipment) {
 	user.Inventory.mux.Lock()
-	user.Inventory.Equipment[slot] = Equipment{}
-	user.Inventory.mux.Unlock()
+	defer user.Inventory.mux.Unlock()
+	for slot, userEqp := range user.Inventory.Equipment {
+		if userEqp == eqp {
+			user.Inventory.Equipment[slot] = Equipment{}
+			return
+		}
+	}
+}
+
+func (users *Users) AdjustCurrency(id int32, currency float64) {
+	users.mux.Lock()
+	user := users.Users[id]
+	user.Currency += currency
+	users.mux.Unlock()
+}
+
+func (users *Users) TradeItem(sellerId, buyerId int32, eqp Equipment, sellerYield, buyerYield float64) {
+	users.mux.Lock()
+	seller := users.Users[sellerId]
+	buyer := users.Users[buyerId]
+	buyer.AddEquipment(eqp)
+	users.AdjustCurrency(buyerId, -buyerYield)
+	seller.RemoveEquipment(eqp)
+	users.AdjustCurrency(sellerId, sellerYield)
+	users.mux.Unlock()
 }
 
 func (user *User) GenerateEquipment() {
@@ -86,4 +109,8 @@ func (user *User) UserHasItem(equipment Equipment) bool {
 		}
 	}
 	return false
+}
+
+func (users Users) String() string {
+	return fmt.Sprintf("%v", users)
 }

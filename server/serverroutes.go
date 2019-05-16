@@ -48,24 +48,6 @@ var appServerRoutes = Routes{
 		"/trade/fulfillments/update",
 		UpdatePendingTransactions,
 	},
-	//Route{
-	//	"Upload",
-	//	"POST",
-	//	"/upload",
-	//	Upload,
-	//},
-	//Route{
-	//	"UploadBlock",
-	//	"GET",
-	//	"/block/{height}/{hash}",
-	//	UploadBlock,
-	//},
-	//Route{
-	//	"HeartBeatReceive",
-	//	"POST",
-	//	"/heartbeat/receive",
-	//	HeartBeatReceive,
-	//},
 	Route{
 		"Start",
 		"GET",

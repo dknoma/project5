@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"github.com/dknoma/cs686-blockchain-p3-dknoma/p3/data"
 	"github.com/dknoma/project5/server/gamedata"
 	"io/ioutil"
 	"net/http"
@@ -20,7 +19,6 @@ var BLOCKCHAIN_SERVER = "http://localhost:6686"
 var BC_DOWNLOAD_SERVER = BLOCKCHAIN_SERVER + "/upload"
 var SELF_ADDR = "http://localhost:"
 
-var BlockchainPeers data.PeerList
 var TradeRequests gamedata.RequestCache
 var PendingTradeFulfillments gamedata.TradeFulfillments
 var UserList gamedata.Users
@@ -47,17 +45,12 @@ func Start(w http.ResponseWriter, r *http.Request) {
 	}
 	ifStarted = true
 	SELF_ADDR = fmt.Sprintf("%v%v", SELF_ADDR, MyPort)
-	//Register()
-	//StartHeartBeat()
-	fmt.Fprint(w, BlockchainPeers.GetSelfId())
 }
 
 // Register to TA's server, get an ID
 func Register() {
 	fmt.Printf("registering...\n")
 	fmt.Printf("req: %v\n", MyID)
-	BlockchainPeers.Register(MyID)
-	BlockchainPeers = data.NewPeerList(MyID, 32)
 }
 
 // Allow users to create an "account" (just a basic user)
@@ -74,7 +67,6 @@ func CreateAccount(w http.ResponseWriter, r *http.Request) {
 // 	"sellerId": id
 // 	"demands": json
 func CreateRequest(w http.ResponseWriter, r *http.Request) {
-	// TODO: Still allows for multiple requests for the same item.
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
 	if err != nil {
@@ -265,8 +257,6 @@ func GetPendingTransactions(w http.ResponseWriter, r *http.Request) {
 }
 
 // Called by miner when successfully mines a block, tho miner could fake this data
-// TODO: takes whatever ids it can get from the json, remove those pending transactions; there is currently no authentication
-//		 to make sure that miners aren't lying.
 func UpdatePendingTransactions(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	defer r.Body.Close()
@@ -313,11 +303,17 @@ func UpdatePendingTransactions(w http.ResponseWriter, r *http.Request) {
 
 // Update the trade databases
 func updateTradeDatabase(id int32) {
+	transferFulfillmentData(id)
 	fmt.Printf("req: before remove: %v\n", TradeRequests.TradeRequests)
 	fmt.Printf("ful: before remove: %v\n", PendingTradeFulfillments.Fulfillments)
 	ful := PendingTradeFulfillments.Fulfillments[id]
-	delete(TradeRequests.TradeRequests, ful.RequestId)
-	delete(PendingTradeFulfillments.Fulfillments, id)
+	TradeRequests.RemoveFromRequestCache(ful.RequestId)
+	PendingTradeFulfillments.RemoveFulfillment(id)
 	fmt.Printf("req: after remove: %v\n", TradeRequests.TradeRequests)
 	fmt.Printf("ful: after remove: %v\n", PendingTradeFulfillments.Fulfillments)
+}
+
+func transferFulfillmentData(id int32) {
+	fulfillment := PendingTradeFulfillments.GetFulfillment(id)
+	UserList.TradeItem(fulfillment.Seller, fulfillment.Buyer, fulfillment.Item, fulfillment.SellerYield, fulfillment.BuyerYield)
 }
