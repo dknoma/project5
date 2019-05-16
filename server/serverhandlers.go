@@ -315,5 +315,7 @@ func updateTradeDatabase(id int32) {
 
 func transferFulfillmentData(id int32) {
 	fulfillment := PendingTradeFulfillments.GetFulfillment(id)
+	fmt.Printf("fuasfl %v\n", fulfillment)
 	UserList.TradeItem(fulfillment.Seller, fulfillment.Buyer, fulfillment.Item, fulfillment.SellerYield, fulfillment.BuyerYield)
+	fmt.Printf("users %v\n", UserList.Users)
 }

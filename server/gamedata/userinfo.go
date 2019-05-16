@@ -54,21 +54,22 @@ func (user *User) RemoveEquipment(eqp Equipment) {
 	}
 }
 
-func (users *Users) AdjustCurrency(id int32, currency float64) {
-	users.mux.Lock()
+func (users *Users) adjustCurrency(id int32, currency float64) {
 	user := users.Users[id]
 	user.Currency += currency
-	users.mux.Unlock()
 }
 
 func (users *Users) TradeItem(sellerId, buyerId int32, eqp Equipment, sellerYield, buyerYield float64) {
 	users.mux.Lock()
 	seller := users.Users[sellerId]
 	buyer := users.Users[buyerId]
+	//fmt.Println("buyer add")
 	buyer.AddEquipment(eqp)
-	users.AdjustCurrency(buyerId, -buyerYield)
+	//fmt.Println("buyer added")
+	users.adjustCurrency(buyerId, -buyerYield)
+	//fmt.Println("seller remove")
 	seller.RemoveEquipment(eqp)
-	users.AdjustCurrency(sellerId, sellerYield)
+	users.adjustCurrency(sellerId, sellerYield)
 	users.mux.Unlock()
 }
 
